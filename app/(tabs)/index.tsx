@@ -7,7 +7,7 @@ import ParallaxScrollView from '@/components/parallax-scroll-view';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Link } from 'expo-router';
-import { getTwitterMinutes } from '../usageStats';
+import { getTwitterMinutes, openUsageAccessSettings } from '../usageStats';
 
 export default function HomeScreen() {
   const [twitterMinutes, setTwitterMinutes] = useState<number | null>(null);
@@ -31,6 +31,15 @@ export default function HomeScreen() {
 
   const handleOpenSettings = () => {
     Linking.openSettings();
+  };
+
+  const handleOpenUsageAccessSettings = () => {
+    try {
+      openUsageAccessSettings();
+    } catch (e: any) {
+      console.log('Error when opening usage access settings:', e);
+      setUsageError(e?.message ?? 'Failed to open usage access settings');
+    }
   };
 
   return (
@@ -117,6 +126,7 @@ export default function HomeScreen() {
           </ThemedText>
         )}
         <Button title="Open app settings" onPress={handleOpenSettings} />
+        <Button title="Grant usage access" onPress={handleOpenUsageAccessSettings} />
       </ThemedView>
     </ParallaxScrollView>
   );

@@ -2,7 +2,9 @@ package com.aamuzakii.myapp
 
 import android.app.usage.UsageStatsManager
 import android.content.Context
+import android.content.Intent
 import android.os.Build
+import android.provider.Settings
 import android.util.Log
 import com.facebook.react.bridge.*
 
@@ -46,6 +48,17 @@ class UsageStatsModule(private val reactContext: ReactApplicationContext) :
 
         } catch (e: Exception) {
             promise.reject("USAGE_ERROR", e)
+        }
+    }
+
+    @ReactMethod
+    fun openUsageAccessSettings() {
+        try {
+            val intent = Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            reactContext.startActivity(intent)
+        } catch (e: Exception) {
+            Log.e("UsageStatsModule", "Failed to open usage access settings", e)
         }
     }
 }
