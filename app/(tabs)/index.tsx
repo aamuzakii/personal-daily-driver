@@ -1,13 +1,38 @@
 import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { useState } from 'react';
+import { ActivityIndicator, Button, Linking, Platform, StyleSheet } from 'react-native';
 
 import { HelloWave } from '@/components/hello-wave';
 import ParallaxScrollView from '@/components/parallax-scroll-view';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Link } from 'expo-router';
+import { getTwitterMinutes } from '../usageStats';
 
 export default function HomeScreen() {
+  const [twitterMinutes, setTwitterMinutes] = useState<number | null>(null);
+  const [loadingUsage, setLoadingUsage] = useState(false);
+  const [usageError, setUsageError] = useState<string | null>(null);
+
+  const handleLoadUsage = async () => {
+    setLoadingUsage(true);
+    setUsageError(null);
+    try {
+      const minutes = await getTwitterMinutes();
+      console.log('Chrome minutes from native (POC):', minutes);
+      setTwitterMinutes(minutes);
+    } catch (e: any) {
+      console.log('Error when calling getTwitterMinutes:', e);
+      setUsageError(e?.message ?? 'Failed to load usage');
+    } finally {
+      setLoadingUsage(false);
+    }
+  };
+
+  const handleOpenSettings = () => {
+    Linking.openSettings();
+  };
+
   return (
     <ParallaxScrollView
       headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
@@ -73,6 +98,25 @@ export default function HomeScreen() {
           <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
           <ThemedText type="defaultSemiBold">app-example</ThemedText>.
         </ThemedText>
+      </ThemedView>
+      <ThemedView style={styles.stepContainer}>
+        <ThemedText type="subtitle">Chrome usage POC</ThemedText>
+        <ThemedText>
+          Press the button below to fetch your Chrome browser usage (last 24h) from the native module.
+        </ThemedText>
+        <Button title="Load Chrome minutes" onPress={handleLoadUsage} />
+        {loadingUsage && <ActivityIndicator style={{ marginTop: 8 }} />}
+        {twitterMinutes !== null && !loadingUsage && (
+          <ThemedText>
+            Chrome usage (last 24h): {twitterMinutes} minutes
+          </ThemedText>
+        )}
+        {usageError && (
+          <ThemedText style={{ color: 'red' }}>
+            Error: {usageError}
+          </ThemedText>
+        )}
+        <Button title="Open app settings" onPress={handleOpenSettings} />
       </ThemedView>
     </ParallaxScrollView>
   );
