@@ -24,3 +24,7 @@ rm -rf ~/.gradle/caches
 
 # Reinstall dependencies
 npm install  # or yarn install
+
+cd android              
+./gradlew clean                                      
+./gradlew assembleRelease

@@ -1,5 +1,5 @@
 import { Image } from 'expo-image';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ActivityIndicator, Button, Linking, Platform, StyleSheet } from 'react-native';
 
 import { HelloWave } from '@/components/hello-wave';
@@ -7,12 +7,34 @@ import ParallaxScrollView from '@/components/parallax-scroll-view';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Link } from 'expo-router';
-import { getTwitterMinutes, openUsageAccessSettings } from '../usageStats';
+import { getQuranMinutes, getTwitterMinutes, openUsageAccessSettings } from '../usageStats';
 
 export default function HomeScreen() {
   const [twitterMinutes, setTwitterMinutes] = useState<number | null>(null);
+  const [quranMinutes, setQuranMinutes] = useState<number | null>(null);
   const [loadingUsage, setLoadingUsage] = useState(false);
   const [usageError, setUsageError] = useState<string | null>(null);
+
+  // Continuously send Quran minutes to API every 2 minutes
+  useEffect(() => {
+    if (quranMinutes === null) return;
+
+    const sendToApi = () => {
+      fetch(`https://home-dashboard-lac.vercel.app/api/quran/${quranMinutes}/210`)
+        .then((res) => {
+          alert(res.status)
+          return console.log('Ping API status:', res.status)
+        })
+        .catch((err) => console.log('API error:', err));
+    };
+
+    // send immediately on change
+    sendToApi();
+
+    const interval = setInterval(sendToApi, 1 * 30 * 1000);
+
+    return () => clearInterval(interval);
+  }, [quranMinutes]);
 
   const handleLoadUsage = async () => {
     setLoadingUsage(true);
@@ -24,6 +46,21 @@ export default function HomeScreen() {
     } catch (e: any) {
       console.log('Error when calling getTwitterMinutes:', e);
       setUsageError(e?.message ?? 'Failed to load usage');
+    } finally {
+      setLoadingUsage(false);
+    }
+  };
+
+  const handleLoadQuranUsage = async () => {
+    setLoadingUsage(true);
+    setUsageError(null);
+    try {
+      const minutes = await getQuranMinutes();
+      console.log('Quran minutes from native:', minutes);
+      setQuranMinutes(minutes);
+    } catch (e: any) {
+      console.log('Error when calling getQuranMinutes:', e);
+      setUsageError(e?.message ?? 'Failed to load Quran usage');
     } finally {
       setLoadingUsage(false);
     }
@@ -118,6 +155,12 @@ export default function HomeScreen() {
         {twitterMinutes !== null && !loadingUsage && (
           <ThemedText>
             Chrome usage (last 24h): {twitterMinutes} minutes
+          </ThemedText>
+        )}
+        <Button title="Load Quran minutes" onPress={handleLoadQuranUsage} />
+        {quranMinutes !== null && !loadingUsage && (
+          <ThemedText>
+            Quran usage (last 24h): {quranMinutes} minutes
           </ThemedText>
         )}
         {usageError && (
