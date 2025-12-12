@@ -1,6 +1,6 @@
 import { Image } from 'expo-image';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Button, Linking, Platform, StyleSheet } from 'react-native';
+import { ActivityIndicator, Button, Linking, Platform, StyleSheet, ToastAndroid } from 'react-native';
 
 import { HelloWave } from '@/components/hello-wave';
 import ParallaxScrollView from '@/components/parallax-scroll-view';
@@ -24,7 +24,7 @@ export default function HomeScreen() {
     const sendToApi = () => {
       fetch(`https://home-dashboard-lac.vercel.app/api/quran/${quranMinutes}/210`)
         .then((res) => {
-          alert(res.status)
+          ToastAndroid.show(`Status: ${res.status}`, ToastAndroid.SHORT);
           return console.log('Ping API status:', res.status)
         })
         .catch((err) => console.log('API error:', err));
