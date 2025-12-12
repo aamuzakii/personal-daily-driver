@@ -5,6 +5,8 @@ const { UsageStats } = NativeModules as {
     getTwitterMinutes: () => Promise<number>;
     getQuranMinutes: () => Promise<number>;
     openUsageAccessSettings?: () => void;
+    startBackgroundTracking?: () => void;
+    stopBackgroundTracking?: () => void;
   };
 };
 
@@ -17,7 +19,7 @@ export const getQuranMinutes = async (): Promise<number> => {
   }
 
   const result = await UsageStats.getQuranMinutes();
-  console.log('getTwitterMinutes result from native:', result);
+  console.log('getQuranMinutes result from native:', result);
   return result;
 };
 
@@ -40,6 +42,22 @@ export const openUsageAccessSettings = (): void => {
   }
 
   UsageStats.openUsageAccessSettings();
+};
+
+export const startBackgroundTracking = (): void => {
+  if (!UsageStats || typeof UsageStats.startBackgroundTracking !== 'function') {
+    throw new Error('UsageStats native module not available');
+  }
+
+  UsageStats.startBackgroundTracking();
+};
+
+export const stopBackgroundTracking = (): void => {
+  if (!UsageStats || typeof UsageStats.stopBackgroundTracking !== 'function') {
+    throw new Error('UsageStats native module not available');
+  }
+
+  UsageStats.stopBackgroundTracking();
 };
 
 export default getTwitterMinutes

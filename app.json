@@ -40,6 +40,18 @@
             "backgroundColor": "#000000"
           }
         }
+      ],
+      [
+        "expo-background-fetch",
+        {
+          "forceEnable": true
+        }
+      ],
+      [
+        "expo-task-manager",
+        {
+          "forceEnable": true
+        }
       ]
     ],
     "experiments": {

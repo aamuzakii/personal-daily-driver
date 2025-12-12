@@ -7,6 +7,7 @@ import ParallaxScrollView from '@/components/parallax-scroll-view';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Link } from 'expo-router';
+import { checkBackgroundTaskStatus, registerBackgroundTask } from '../backgroundTasks';
 import { getQuranMinutes, getTwitterMinutes, openUsageAccessSettings } from '../usageStats';
 
 export default function HomeScreen() {
@@ -14,8 +15,9 @@ export default function HomeScreen() {
   const [quranMinutes, setQuranMinutes] = useState<number | null>(null);
   const [loadingUsage, setLoadingUsage] = useState(false);
   const [usageError, setUsageError] = useState<string | null>(null);
+  const [backgroundTaskStatus, setBackgroundTaskStatus] = useState<string>('Not registered');
 
-  // Continuously send Quran minutes to API every 2 minutes
+    // Continuously send Quran minutes to API every 2 minutes
   useEffect(() => {
     if (quranMinutes === null) return;
 
@@ -35,6 +37,18 @@ export default function HomeScreen() {
 
     return () => clearInterval(interval);
   }, [quranMinutes]);
+
+
+  // Register background task on component mount
+  useEffect(() => {
+    const setupBackgroundTask = async () => {
+      await registerBackgroundTask();
+      const status = await checkBackgroundTaskStatus();
+      setBackgroundTaskStatus(status.isRegistered ? 'Registered' : 'Not registered');
+    };
+
+    setupBackgroundTask();
+  }, []);
 
   const handleLoadUsage = async () => {
     setLoadingUsage(true);
@@ -168,6 +182,9 @@ export default function HomeScreen() {
             Error: {usageError}
           </ThemedText>
         )}
+        <ThemedText>
+          Background Task Status: {backgroundTaskStatus}
+        </ThemedText>
         <Button title="Open app settings" onPress={handleOpenSettings} />
         <Button title="Grant usage access" onPress={handleOpenUsageAccessSettings} />
       </ThemedView>
