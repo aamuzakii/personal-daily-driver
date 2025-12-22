@@ -24,8 +24,12 @@ class UsageStatsModule(private val reactContext: ReactApplicationContext) :
 
     private val handler = Handler(Looper.getMainLooper())
     private var backgroundJob: Job? = null
-    private var blockerJob: Job? = null
     private val CHANNEL_ID = "quran_tracking"
+    private val chromeBlockingController = ChromeBlockingController(
+        getChromeMinutes = { getChromeMinutesInternal() },
+        getCurrentForegroundPackage = { getCurrentForegroundPackage() },
+        bringToHome = { bringToHome() },
+    )
 
     override fun getName(): String {
         return "UsageStats"
@@ -367,39 +371,12 @@ class UsageStatsModule(private val reactContext: ReactApplicationContext) :
 
     @ReactMethod
     fun startChromeBlockingWithLimit(limitMinutes: Int) {
-        try {
-            blockerJob?.cancel()
-            blockerJob = CoroutineScope(Dispatchers.IO).launch {
-                while (isActive) {
-                    try {
-                        val chromeMinutes = getChromeMinutesInternal()
-                        val fg = getCurrentForegroundPackage()
-                        Log.d("UsageStatsModule", "Blocker loop: minutes=" + chromeMinutes + ", fg=" + fg)
-                        if (chromeMinutes >= limitMinutes && fg == "com.android.chrome") {
-                            Log.d("UsageStatsModule", "Chrome limit reached ($chromeMinutes >= $limitMinutes). Sending to home.")
-                            withContext(Dispatchers.Main) { bringToHome() }
-                        }
-                    } catch (e: Exception) {
-                        Log.e("UsageStatsModule", "Blocker loop error", e)
-                    }
-                    delay(500L)
-                }
-            }
-            Log.d("UsageStatsModule", "Chrome blocking started (limit=$limitMinutes min)")
-        } catch (e: Exception) {
-            Log.e("UsageStatsModule", "Failed to start Chrome blocking", e)
-        }
+        chromeBlockingController.start(limitMinutes)
     }
 
     @ReactMethod
     fun stopChromeBlocking() {
-        try {
-            blockerJob?.cancel()
-            blockerJob = null
-            Log.d("UsageStatsModule", "Chrome blocking stopped")
-        } catch (e: Exception) {
-            Log.e("UsageStatsModule", "Failed to stop Chrome blocking", e)
-        }
+        chromeBlockingController.stop()
     }
 
     @ReactMethod
@@ -415,6 +392,6 @@ class UsageStatsModule(private val reactContext: ReactApplicationContext) :
     override fun invalidate() {
         super.invalidate()
         backgroundJob?.cancel()
-        blockerJob?.cancel()
+        chromeBlockingController.invalidate()
     }
 }
