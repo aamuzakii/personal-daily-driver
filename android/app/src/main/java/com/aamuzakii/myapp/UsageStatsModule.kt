@@ -16,6 +16,7 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import java.util.Calendar
 
 class UsageStatsModule(private val reactContext: ReactApplicationContext) :
     ReactContextBaseJavaModule(reactContext) {
@@ -61,7 +62,14 @@ class UsageStatsModule(private val reactContext: ReactApplicationContext) :
         try {
             val usm = reactContext.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
             val end = System.currentTimeMillis()
-            val start = end - (24 * 60 * 60 * 1000) // last 24 hours
+            val cal = Calendar.getInstance()
+            cal.set(Calendar.HOUR_OF_DAY, 0)
+            cal.set(Calendar.MINUTE, 0)
+            cal.set(Calendar.SECOND, 0)
+            cal.set(Calendar.MILLISECOND, 0)
+            cal.firstDayOfWeek = Calendar.MONDAY
+            cal.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY)
+            val start = cal.timeInMillis // last 24 hours
 
             val stats = usm.queryUsageStats(
                 UsageStatsManager.INTERVAL_DAILY,
@@ -97,7 +105,14 @@ class UsageStatsModule(private val reactContext: ReactApplicationContext) :
         try {
             val usm = reactContext.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
             val end = System.currentTimeMillis()
-            val start = end - (24 * 60 * 60 * 1000) // last 24 hours
+            val cal = Calendar.getInstance()
+            cal.set(Calendar.HOUR_OF_DAY, 0)
+            cal.set(Calendar.MINUTE, 0)
+            cal.set(Calendar.SECOND, 0)
+            cal.set(Calendar.MILLISECOND, 0)
+            cal.firstDayOfWeek = Calendar.MONDAY
+            cal.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY)
+            val start = cal.timeInMillis // last 24 hours
 
             val stats = usm.queryUsageStats(
                 UsageStatsManager.INTERVAL_DAILY,
@@ -179,7 +194,14 @@ class UsageStatsModule(private val reactContext: ReactApplicationContext) :
     private fun getQuranMinutesInternal(): Double {
         val usm = reactContext.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
         val end = System.currentTimeMillis()
-        val start = end - (24 * 60 * 60 * 1000) // last 24 hours
+        val cal = Calendar.getInstance()
+        cal.set(Calendar.HOUR_OF_DAY, 0)
+        cal.set(Calendar.MINUTE, 0)
+        cal.set(Calendar.SECOND, 0)
+        cal.set(Calendar.MILLISECOND, 0)
+        cal.firstDayOfWeek = Calendar.MONDAY
+        cal.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY)
+        val start = cal.timeInMillis // last 24 hours
 
         val stats = usm.queryUsageStats(
             UsageStatsManager.INTERVAL_DAILY,
