@@ -320,7 +320,7 @@ class UsageStatsModule(private val reactContext: ReactApplicationContext) :
     }
 
     @ReactMethod
-    fun startChromeBlocking(limitMinutes: Int = 30) {
+    fun startChromeBlocking(limitMinutes: Int = 1) {
         try {
             blockerJob?.cancel()
             blockerJob = CoroutineScope(Dispatchers.IO).launch {

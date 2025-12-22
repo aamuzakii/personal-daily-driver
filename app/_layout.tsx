@@ -1,6 +1,8 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { useEffect } from 'react';
+import { NativeModules } from 'react-native';
 import 'react-native-reanimated';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -11,6 +13,18 @@ export const unstable_settings = {
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
+  const { UsageStats } = NativeModules as any;
+
+  useEffect(() => {
+    try {
+      UsageStats?.startChromeBlocking?.(1);
+    } catch {}
+    return () => {
+      try {
+        UsageStats?.stopChromeBlocking?.();
+      } catch {}
+    };
+  }, []);
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
