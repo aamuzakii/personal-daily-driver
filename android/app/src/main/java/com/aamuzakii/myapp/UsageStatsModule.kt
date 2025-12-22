@@ -12,15 +12,48 @@ import com.facebook.react.bridge.*
 import java.net.HttpURLConnection
 import java.net.URL
 import kotlinx.coroutines.*
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
 
 class UsageStatsModule(private val reactContext: ReactApplicationContext) :
     ReactContextBaseJavaModule(reactContext) {
 
     private val handler = Handler(Looper.getMainLooper())
     private var backgroundJob: Job? = null
+    private val CHANNEL_ID = "quran_tracking"
 
     override fun getName(): String {
         return "UsageStats"
+    }
+
+    private fun ensureNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val name = "Quran Tracking"
+            val descriptionText = "Notifications for Quran usage tracking"
+            val importance = NotificationManager.IMPORTANCE_LOW
+            val channel = NotificationChannel(CHANNEL_ID, name, importance).apply {
+                description = descriptionText
+            }
+            val notificationManager: NotificationManager =
+                reactContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            notificationManager.createNotificationChannel(channel)
+        }
+    }
+
+    private fun showSuccessNotification(minutes: Int, responseCode: Int) {
+        ensureNotificationChannel()
+        val builder = NotificationCompat.Builder(reactContext, CHANNEL_ID)
+            .setSmallIcon(reactContext.applicationInfo.icon)
+            .setContentTitle("Quran usage sent")
+            .setContentText("${minutes} min • API ${responseCode}")
+            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setAutoCancel(true)
+
+        with(NotificationManagerCompat.from(reactContext)) {
+            notify(1001, builder.build())
+        }
     }
 
     @ReactMethod
@@ -182,6 +215,10 @@ class UsageStatsModule(private val reactContext: ReactApplicationContext) :
             
             val responseCode = connection.responseCode
             Log.d("UsageStatsModule", "API response code: $responseCode")
+            if (responseCode in 200..299) {
+                // Show a small success notification
+                showSuccessNotification(minutes.toInt(), responseCode)
+            }
             
             connection.disconnect()
         } catch (e: Exception) {

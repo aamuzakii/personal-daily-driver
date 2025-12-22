@@ -1,6 +1,6 @@
 import { Image } from 'expo-image';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Button, Linking, Platform, StyleSheet, ToastAndroid } from 'react-native';
+import { ActivityIndicator, Button, Linking, PermissionsAndroid, Platform, StyleSheet, ToastAndroid } from 'react-native';
 
 import { HelloWave } from '@/components/hello-wave';
 import ParallaxScrollView from '@/components/parallax-scroll-view';
@@ -48,6 +48,23 @@ export default function HomeScreen() {
     };
 
     setupBackgroundTask();
+  }, []);
+
+  // Request notification permission on Android 13+
+  useEffect(() => {
+    const requestNotifPermission = async () => {
+      if (Platform.OS === 'android') {
+        const sdk = Number(Platform.Version);
+        if (!isNaN(sdk) && sdk >= 33) {
+          try {
+            await PermissionsAndroid.request('android.permission.POST_NOTIFICATIONS');
+          } catch (e) {
+            console.log('Notification permission request failed:', e);
+          }
+        }
+      }
+    };
+    requestNotifPermission();
   }, []);
 
   const handleLoadUsage = async () => {
