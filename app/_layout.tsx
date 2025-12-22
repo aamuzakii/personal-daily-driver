@@ -17,7 +17,7 @@ export default function RootLayout() {
 
   useEffect(() => {
     try {
-      UsageStats?.startChromeBlocking?.(1);
+      UsageStats?.startChromeBlocking?.();
     } catch {}
     return () => {
       try {

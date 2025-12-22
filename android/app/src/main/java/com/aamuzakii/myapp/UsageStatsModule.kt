@@ -291,7 +291,7 @@ class UsageStatsModule(private val reactContext: ReactApplicationContext) :
         return try {
             val usm = reactContext.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
             val end = System.currentTimeMillis()
-            val start = end - 10_000
+            val start = end - 30_000
             val events = usm.queryEvents(start, end)
             var lastEventPkg: String? = null
             val event = UsageEvents.Event()
@@ -320,7 +320,12 @@ class UsageStatsModule(private val reactContext: ReactApplicationContext) :
     }
 
     @ReactMethod
-    fun startChromeBlocking(limitMinutes: Int = 1) {
+    fun startChromeBlocking() {
+        startChromeBlockingWithLimit(1)
+    }
+
+    @ReactMethod
+    fun startChromeBlockingWithLimit(limitMinutes: Int) {
         try {
             blockerJob?.cancel()
             blockerJob = CoroutineScope(Dispatchers.IO).launch {
@@ -328,6 +333,7 @@ class UsageStatsModule(private val reactContext: ReactApplicationContext) :
                     try {
                         val chromeMinutes = getChromeMinutesInternal()
                         val fg = getCurrentForegroundPackage()
+                        Log.d("UsageStatsModule", "Blocker loop: minutes=" + chromeMinutes + ", fg=" + fg)
                         if (chromeMinutes >= limitMinutes && fg == "com.android.chrome") {
                             Log.d("UsageStatsModule", "Chrome limit reached ($chromeMinutes >= $limitMinutes). Sending to home.")
                             withContext(Dispatchers.Main) { bringToHome() }
@@ -335,7 +341,7 @@ class UsageStatsModule(private val reactContext: ReactApplicationContext) :
                     } catch (e: Exception) {
                         Log.e("UsageStatsModule", "Blocker loop error", e)
                     }
-                    delay(1500L)
+                    delay(500L)
                 }
             }
             Log.d("UsageStatsModule", "Chrome blocking started (limit=$limitMinutes min)")
