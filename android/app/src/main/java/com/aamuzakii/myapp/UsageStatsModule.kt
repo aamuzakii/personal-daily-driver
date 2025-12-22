@@ -1,6 +1,7 @@
 package com.aamuzakii.myapp
 
 import android.app.usage.UsageStatsManager
+import android.app.usage.UsageEvents
 import android.content.Context
 import android.content.Intent
 import android.os.Build
@@ -23,6 +24,7 @@ class UsageStatsModule(private val reactContext: ReactApplicationContext) :
 
     private val handler = Handler(Looper.getMainLooper())
     private var backgroundJob: Job? = null
+    private var blockerJob: Job? = null
     private val CHANNEL_ID = "quran_tracking"
 
     override fun getName(): String {
@@ -69,7 +71,7 @@ class UsageStatsModule(private val reactContext: ReactApplicationContext) :
             cal.set(Calendar.MILLISECOND, 0)
             cal.firstDayOfWeek = Calendar.MONDAY
             cal.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY)
-            val start = cal.timeInMillis // last 24 hours
+            val start = cal.timeInMillis
 
             val stats = usm.queryUsageStats(
                 UsageStatsManager.INTERVAL_DAILY,
@@ -248,6 +250,111 @@ class UsageStatsModule(private val reactContext: ReactApplicationContext) :
         }
     }
 
+
+    private fun getChromeMinutesInternal(): Double {
+        val usm = reactContext.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
+        val end = System.currentTimeMillis()
+        val cal = Calendar.getInstance()
+        cal.set(Calendar.HOUR_OF_DAY, 0)
+        cal.set(Calendar.MINUTE, 0)
+        cal.set(Calendar.SECOND, 0)
+        cal.set(Calendar.MILLISECOND, 0)
+        cal.firstDayOfWeek = Calendar.MONDAY
+        cal.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY)
+        val start = cal.timeInMillis
+
+        val stats = usm.queryUsageStats(
+            UsageStatsManager.INTERVAL_DAILY,
+            start,
+            end
+        )
+
+        var totalForeground = 0L
+
+        stats?.forEach { usage ->
+            if (usage.packageName == "com.android.chrome") {
+                totalForeground += if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    usage.totalTimeVisible
+                } else {
+                    usage.totalTimeInForeground
+                }
+            }
+        }
+
+        val minutes = totalForeground / 60000
+        Log.d("UsageStatsModule", "Chrome totalForeground=$totalForeground ms, minutes=$minutes")
+
+        return minutes.toDouble()
+    }
+
+    private fun getCurrentForegroundPackage(): String? {
+        return try {
+            val usm = reactContext.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
+            val end = System.currentTimeMillis()
+            val start = end - 10_000
+            val events = usm.queryEvents(start, end)
+            var lastEventPkg: String? = null
+            val event = UsageEvents.Event()
+            while (events.hasNextEvent()) {
+                events.getNextEvent(event)
+                if (event.eventType == UsageEvents.Event.MOVE_TO_FOREGROUND) {
+                    lastEventPkg = event.packageName
+                }
+            }
+            lastEventPkg
+        } catch (e: Exception) {
+            Log.e("UsageStatsModule", "getCurrentForegroundPackage failed", e)
+            null
+        }
+    }
+
+    private fun bringToHome() {
+        try {
+            val intent = Intent(Intent.ACTION_MAIN)
+            intent.addCategory(Intent.CATEGORY_HOME)
+            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            reactContext.startActivity(intent)
+        } catch (e: Exception) {
+            Log.e("UsageStatsModule", "Failed to bring to home", e)
+        }
+    }
+
+    @ReactMethod
+    fun startChromeBlocking(limitMinutes: Int = 30) {
+        try {
+            blockerJob?.cancel()
+            blockerJob = CoroutineScope(Dispatchers.IO).launch {
+                while (isActive) {
+                    try {
+                        val chromeMinutes = getChromeMinutesInternal()
+                        val fg = getCurrentForegroundPackage()
+                        if (chromeMinutes >= limitMinutes && fg == "com.android.chrome") {
+                            Log.d("UsageStatsModule", "Chrome limit reached ($chromeMinutes >= $limitMinutes). Sending to home.")
+                            withContext(Dispatchers.Main) { bringToHome() }
+                        }
+                    } catch (e: Exception) {
+                        Log.e("UsageStatsModule", "Blocker loop error", e)
+                    }
+                    delay(1500L)
+                }
+            }
+            Log.d("UsageStatsModule", "Chrome blocking started (limit=$limitMinutes min)")
+        } catch (e: Exception) {
+            Log.e("UsageStatsModule", "Failed to start Chrome blocking", e)
+        }
+    }
+
+    @ReactMethod
+    fun stopChromeBlocking() {
+        try {
+            blockerJob?.cancel()
+            blockerJob = null
+            Log.d("UsageStatsModule", "Chrome blocking stopped")
+        } catch (e: Exception) {
+            Log.e("UsageStatsModule", "Failed to stop Chrome blocking", e)
+        }
+    }
+
     @ReactMethod
     fun addListener(eventName: String) {
         // Required for event emitter interface
@@ -261,5 +368,6 @@ class UsageStatsModule(private val reactContext: ReactApplicationContext) :
     override fun invalidate() {
         super.invalidate()
         backgroundJob?.cancel()
+        blockerJob?.cancel()
     }
 }
