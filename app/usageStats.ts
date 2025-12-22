@@ -1,9 +1,21 @@
 import { NativeModules } from 'react-native';
 
+export type QuranWeekBreakdown = {
+  monday: number;
+  tuesday: number;
+  wednesday: number;
+  thursday: number;
+  friday: number;
+  saturday: number;
+  sunday: number;
+  total: number;
+};
+
 const { UsageStats } = NativeModules as {
   UsageStats?: {
     getTwitterMinutes: () => Promise<number>;
     getQuranMinutes: () => Promise<number>;
+    getQuranWeekBreakdown?: () => Promise<QuranWeekBreakdown>;
     openUsageAccessSettings?: () => void;
     startBackgroundTracking?: () => void;
     stopBackgroundTracking?: () => void;
@@ -34,6 +46,13 @@ export const getTwitterMinutes = async (): Promise<number> => {
   const result = await UsageStats.getTwitterMinutes();
   console.log('getTwitterMinutes result from native:', result);
   return result;
+};
+
+export const getQuranWeekBreakdown = async (): Promise<QuranWeekBreakdown> => {
+  if (!UsageStats || typeof UsageStats.getQuranWeekBreakdown !== 'function') {
+    throw new Error('UsageStats native module not available');
+  }
+  return UsageStats.getQuranWeekBreakdown();
 };
 
 export const openUsageAccessSettings = (): void => {

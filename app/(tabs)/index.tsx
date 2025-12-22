@@ -1,6 +1,15 @@
 import { Image } from 'expo-image';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Button, Linking, PermissionsAndroid, Platform, StyleSheet, ToastAndroid } from 'react-native';
+import {
+  ActivityIndicator,
+  Button,
+  Linking,
+  PermissionsAndroid,
+  Platform,
+  Pressable,
+  StyleSheet,
+  ToastAndroid,
+} from 'react-native';
 
 import { HelloWave } from '@/components/hello-wave';
 import ParallaxScrollView from '@/components/parallax-scroll-view';
@@ -8,14 +17,30 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Link } from 'expo-router';
 import { checkBackgroundTaskStatus, registerBackgroundTask } from '../backgroundTasks';
-import { getQuranMinutes, getTwitterMinutes, openUsageAccessSettings } from '../usageStats';
+import { getQuranMinutes, getQuranWeekBreakdown, getTwitterMinutes, openUsageAccessSettings, type QuranWeekBreakdown } from '../usageStats';
 
 export default function HomeScreen() {
   const [twitterMinutes, setTwitterMinutes] = useState<number | null>(null);
   const [quranMinutes, setQuranMinutes] = useState<number | null>(null);
+  const [quranWeek, setQuranWeek] = useState<QuranWeekBreakdown | null>(null);
   const [loadingUsage, setLoadingUsage] = useState(false);
   const [usageError, setUsageError] = useState<string | null>(null);
   const [backgroundTaskStatus, setBackgroundTaskStatus] = useState<string>('Not registered');
+
+  const loadQuranWeek = async () => {
+    setLoadingUsage(true);
+    setUsageError(null);
+    try {
+      const week = await getQuranWeekBreakdown();
+      setQuranWeek(week);
+    } catch (e: any) {
+      console.log('Error when calling getQuranWeekBreakdown:', e);
+      setUsageError(e?.message ?? 'Failed to load Quran week breakdown');
+      setQuranWeek(null);
+    } finally {
+      setLoadingUsage(false);
+    }
+  };
 
     // Continuously send Quran minutes to API every 2 minutes
   useEffect(() => {
@@ -194,6 +219,52 @@ export default function HomeScreen() {
             Quran usage (last 24h): {quranMinutes} minutes
           </ThemedText>
         )}
+
+        <ThemedView style={styles.weekHeaderRow}>
+          <ThemedText type="defaultSemiBold">Quran this week (Mon–Sun)</ThemedText>
+          <Pressable onPress={loadQuranWeek} disabled={loadingUsage} style={styles.refreshButton}>
+            <ThemedText type="link">{loadingUsage ? 'Loading…' : 'Refresh'}</ThemedText>
+          </Pressable>
+        </ThemedView>
+
+        {quranWeek && !loadingUsage && (
+          <ThemedView style={styles.weekGrid}>
+            <ThemedView style={styles.weekRow}>
+              <ThemedText style={styles.weekLabel}>Mon</ThemedText>
+              <ThemedText style={styles.weekValue}>{quranWeek.monday} min</ThemedText>
+            </ThemedView>
+            <ThemedView style={styles.weekRow}>
+              <ThemedText style={styles.weekLabel}>Tue</ThemedText>
+              <ThemedText style={styles.weekValue}>{quranWeek.tuesday} min</ThemedText>
+            </ThemedView>
+            <ThemedView style={styles.weekRow}>
+              <ThemedText style={styles.weekLabel}>Wed</ThemedText>
+              <ThemedText style={styles.weekValue}>{quranWeek.wednesday} min</ThemedText>
+            </ThemedView>
+            <ThemedView style={styles.weekRow}>
+              <ThemedText style={styles.weekLabel}>Thu</ThemedText>
+              <ThemedText style={styles.weekValue}>{quranWeek.thursday} min</ThemedText>
+            </ThemedView>
+            <ThemedView style={styles.weekRow}>
+              <ThemedText style={styles.weekLabel}>Fri</ThemedText>
+              <ThemedText style={styles.weekValue}>{quranWeek.friday} min</ThemedText>
+            </ThemedView>
+            <ThemedView style={styles.weekRow}>
+              <ThemedText style={styles.weekLabel}>Sat</ThemedText>
+              <ThemedText style={styles.weekValue}>{quranWeek.saturday} min</ThemedText>
+            </ThemedView>
+            <ThemedView style={styles.weekRow}>
+              <ThemedText style={styles.weekLabel}>Sun</ThemedText>
+              <ThemedText style={styles.weekValue}>{quranWeek.sunday} min</ThemedText>
+            </ThemedView>
+
+            <ThemedView style={styles.totalRow}>
+              <ThemedText type="defaultSemiBold">Total</ThemedText>
+              <ThemedText type="defaultSemiBold">{quranWeek.total} min</ThemedText>
+            </ThemedView>
+          </ThemedView>
+        )}
+
         {usageError && (
           <ThemedText style={{ color: 'red' }}>
             Error: {usageError}
@@ -218,6 +289,34 @@ const styles = StyleSheet.create({
   stepContainer: {
     gap: 8,
     marginBottom: 8,
+  },
+  weekHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 8,
+  },
+  refreshButton: {
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+  },
+  weekGrid: {
+    gap: 6,
+  },
+  weekRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  weekLabel: {
+    opacity: 0.8,
+  },
+  weekValue: {
+    fontVariant: ['tabular-nums'],
+  },
+  totalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 10,
   },
   reactLogo: {
     height: 178,

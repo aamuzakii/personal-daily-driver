@@ -31,6 +31,23 @@ class UsageStatsModule(private val reactContext: ReactApplicationContext) :
         return "UsageStats"
     }
 
+    private fun getPackageMinutesInRange(packageName: String, start: Long, end: Long): Double {
+        if (end <= start) return 0.0
+        val usm = reactContext.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
+        val aggregated = usm.queryAndAggregateUsageStats(start, end)
+        val usage = aggregated[packageName]
+        val totalForeground = if (usage != null) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                usage.totalTimeVisible
+            } else {
+                usage.totalTimeInForeground
+            }
+        } else {
+            0L
+        }
+        return (totalForeground / 60000).toDouble()
+    }
+
     private fun ensureNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val name = "Quran Tracking"
@@ -73,22 +90,16 @@ class UsageStatsModule(private val reactContext: ReactApplicationContext) :
             cal.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY)
             val start = cal.timeInMillis
 
-            val stats = usm.queryUsageStats(
-                UsageStatsManager.INTERVAL_DAILY,
-                start,
-                end
-            )
-
-            var totalForeground = 0L
-
-            stats?.forEach { usage ->
-                if (usage.packageName == "com.android.chrome") {
-                    totalForeground += if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                        usage.totalTimeVisible
-                    } else {
-                        usage.totalTimeInForeground
-                    }
+            val aggregated = usm.queryAndAggregateUsageStats(start, end)
+            val usage = aggregated["com.android.chrome"]
+            val totalForeground = if (usage != null) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    usage.totalTimeVisible
+                } else {
+                    usage.totalTimeInForeground
                 }
+            } else {
+                0L
             }
 
             val minutes = totalForeground / 60000
@@ -97,6 +108,54 @@ class UsageStatsModule(private val reactContext: ReactApplicationContext) :
             // React Native bridge is happiest with Double for numbers
             promise.resolve(minutes.toDouble())
 
+        } catch (e: Exception) {
+            promise.reject("USAGE_ERROR", e)
+        }
+    }
+
+    @ReactMethod
+    fun getQuranWeekBreakdown(promise: Promise) {
+        try {
+            val now = System.currentTimeMillis()
+
+            val weekStartCal = Calendar.getInstance()
+            weekStartCal.set(Calendar.HOUR_OF_DAY, 0)
+            weekStartCal.set(Calendar.MINUTE, 0)
+            weekStartCal.set(Calendar.SECOND, 0)
+            weekStartCal.set(Calendar.MILLISECOND, 0)
+            weekStartCal.firstDayOfWeek = Calendar.MONDAY
+            weekStartCal.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY)
+            val weekStart = weekStartCal.timeInMillis
+
+            val dayKeys = arrayOf(
+                "monday",
+                "tuesday",
+                "wednesday",
+                "thursday",
+                "friday",
+                "saturday",
+                "sunday"
+            )
+
+            val out = Arguments.createMap()
+            var total = 0.0
+
+            for (i in 0..6) {
+                val dayStart = weekStart + (i * 24L * 60L * 60L * 1000L)
+                val dayEnd = dayStart + (24L * 60L * 60L * 1000L)
+
+                val minutes = when {
+                    dayStart >= now -> 0.0
+                    dayEnd > now -> getPackageMinutesInRange("com.quran.labs.androidquran", dayStart, now)
+                    else -> getPackageMinutesInRange("com.quran.labs.androidquran", dayStart, dayEnd)
+                }
+
+                out.putDouble(dayKeys[i], minutes)
+                total += minutes
+            }
+
+            out.putDouble("total", total)
+            promise.resolve(out)
         } catch (e: Exception) {
             promise.reject("USAGE_ERROR", e)
         }
@@ -114,24 +173,18 @@ class UsageStatsModule(private val reactContext: ReactApplicationContext) :
             cal.set(Calendar.MILLISECOND, 0)
             cal.firstDayOfWeek = Calendar.MONDAY
             cal.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY)
-            val start = cal.timeInMillis // last 24 hours
+            val start = cal.timeInMillis 
 
-            val stats = usm.queryUsageStats(
-                UsageStatsManager.INTERVAL_DAILY,
-                start,
-                end
-            )
-
-            var totalForeground = 0L
-
-            stats?.forEach { usage ->
-                if (usage.packageName == "com.quran.labs.androidquran") {
-                    totalForeground += if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                        usage.totalTimeVisible
-                    } else {
-                        usage.totalTimeInForeground
-                    }
+            val aggregated = usm.queryAndAggregateUsageStats(start, end)
+            val usage = aggregated["com.quran.labs.androidquran"]
+            val totalForeground = if (usage != null) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    usage.totalTimeVisible
+                } else {
+                    usage.totalTimeInForeground
                 }
+            } else {
+                0L
             }
 
             val minutes = totalForeground / 60000
@@ -203,24 +256,18 @@ class UsageStatsModule(private val reactContext: ReactApplicationContext) :
         cal.set(Calendar.MILLISECOND, 0)
         cal.firstDayOfWeek = Calendar.MONDAY
         cal.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY)
-        val start = cal.timeInMillis // last 24 hours
+        val start = cal.timeInMillis // 
 
-        val stats = usm.queryUsageStats(
-            UsageStatsManager.INTERVAL_DAILY,
-            start,
-            end
-        )
-
-        var totalForeground = 0L
-
-        stats?.forEach { usage ->
-            if (usage.packageName == "com.quran.labs.androidquran") {
-                totalForeground += if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    usage.totalTimeVisible
-                } else {
-                    usage.totalTimeInForeground
-                }
+        val aggregated = usm.queryAndAggregateUsageStats(start, end)
+        val usage = aggregated["com.quran.labs.androidquran"]
+        val totalForeground = if (usage != null) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                usage.totalTimeVisible
+            } else {
+                usage.totalTimeInForeground
             }
+        } else {
+            0L
         }
 
         val minutes = totalForeground / 60000
@@ -263,22 +310,16 @@ class UsageStatsModule(private val reactContext: ReactApplicationContext) :
         cal.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY)
         val start = cal.timeInMillis
 
-        val stats = usm.queryUsageStats(
-            UsageStatsManager.INTERVAL_DAILY,
-            start,
-            end
-        )
-
-        var totalForeground = 0L
-
-        stats?.forEach { usage ->
-            if (usage.packageName == "com.android.chrome") {
-                totalForeground += if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    usage.totalTimeVisible
-                } else {
-                    usage.totalTimeInForeground
-                }
+        val aggregated = usm.queryAndAggregateUsageStats(start, end)
+        val usage = aggregated["com.android.chrome"]
+        val totalForeground = if (usage != null) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                usage.totalTimeVisible
+            } else {
+                usage.totalTimeInForeground
             }
+        } else {
+            0L
         }
 
         val minutes = totalForeground / 60000
