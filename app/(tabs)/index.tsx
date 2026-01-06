@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Image } from 'expo-image';
 import { useEffect, useState } from 'react';
 import {
@@ -7,17 +8,25 @@ import {
   PermissionsAndroid,
   Platform,
   Pressable,
-  StyleSheet,
-  ToastAndroid,
+  ToastAndroid
 } from 'react-native';
 
-import { HelloWave } from '@/components/hello-wave';
 import ParallaxScrollView from '@/components/parallax-scroll-view';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+import Todo from '@/components/todo';
+import { styles } from '@/constants/styles';
+import { WeekDayKey } from '@/constants/type';
 import { checkBackgroundTaskStatus, registerBackgroundTask } from '../backgroundTasks';
 import { getQuranMinutes, getQuranWeekBreakdown, getTwitterMinutes, openUsageAccessSettings, type QuranWeekBreakdown } from '../usageStats';
+
+type TodoItem = {
+  id: string;
+  title: string;
+  score: number;
+  done: boolean;
+};
+
 
 export default function HomeScreen() {
   const [twitterMinutes, setTwitterMinutes] = useState<number | null>(null);
@@ -26,6 +35,17 @@ export default function HomeScreen() {
   const [loadingUsage, setLoadingUsage] = useState(false);
   const [usageError, setUsageError] = useState<string | null>(null);
   const [backgroundTaskStatus, setBackgroundTaskStatus] = useState<string>('Not registered');
+
+  const [todos, setTodos] = useState<TodoItem[]>([]);
+  const [weekScores, setWeekScores] = useState<Record<WeekDayKey, number>>({
+    monday: 0,
+    tuesday: 0,
+    wednesday: 0,
+    thursday: 0,
+    friday: 0,
+    saturday: 0,
+    sunday: 0,
+  });
 
   const loadQuranWeek = async () => {
     setLoadingUsage(true);
@@ -41,6 +61,57 @@ export default function HomeScreen() {
       setLoadingUsage(false);
     }
   };
+
+  useEffect(() => {
+    const loadLocal = async () => {
+      try {
+        const [savedTodos, savedWeek] = await Promise.all([
+          AsyncStorage.getItem('home.todos.v1'),
+          AsyncStorage.getItem('home.weekScores.v1'),
+        ]);
+
+        if (savedTodos) {
+          setTodos(JSON.parse(savedTodos));
+        } else {
+          setTodos([
+            { id: 'recite', title: 'recite', score: 10, done: false },
+            { id: 'hsk', title: 'HSK', score: 3, done: false },
+            { id: 'arab', title: 'learn arab', score: 4, done: false },
+          ]);
+        }
+
+        if (savedWeek) {
+          setWeekScores(JSON.parse(savedWeek));
+        }
+      } catch (e) {
+        console.log('Failed to load local todo/week data:', e);
+      }
+    };
+    loadLocal();
+  }, []);
+
+  useEffect(() => {
+    const saveLocalTodos = async () => {
+      try {
+        await AsyncStorage.setItem('home.todos.v1', JSON.stringify(todos));
+      } catch (e) {
+        console.log('Failed to save todos:', e);
+      }
+    };
+    if (todos.length === 0) return;
+    saveLocalTodos();
+  }, [todos]);
+
+  useEffect(() => {
+    const saveLocalWeek = async () => {
+      try {
+        await AsyncStorage.setItem('home.weekScores.v1', JSON.stringify(weekScores));
+      } catch (e) {
+        console.log('Failed to save week scores:', e);
+      }
+    };
+    saveLocalWeek();
+  }, [weekScores]);
 
     // Continuously send Quran minutes to API every 2 minutes
   useEffect(() => {
@@ -144,63 +215,7 @@ export default function HomeScreen() {
           style={styles.reactLogo}
         />
       }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
-
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
+      <Todo  todos={todos} setTodos={setTodos} weekScores={weekScores} setWeekScores={setWeekScores} />
       <ThemedView style={styles.stepContainer}>
         <ThemedText type="subtitle">Chrome usage POC</ThemedText>
         <ThemedText>
@@ -210,13 +225,13 @@ export default function HomeScreen() {
         {loadingUsage && <ActivityIndicator style={{ marginTop: 8 }} />}
         {twitterMinutes !== null && !loadingUsage && (
           <ThemedText>
-            Chrome usage (last 24h): {twitterMinutes} minutes
+            Chrome usage: {twitterMinutes} minutes
           </ThemedText>
         )}
         <Button title="Load Quran minutes" onPress={handleLoadQuranUsage} />
         {quranMinutes !== null && !loadingUsage && (
           <ThemedText>
-            Quran usage (last 24h): {quranMinutes} minutes
+            Quran usage: {quranMinutes} minutes
           </ThemedText>
         )}
 
@@ -280,49 +295,4 @@ export default function HomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  weekHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: 8,
-  },
-  refreshButton: {
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-  },
-  weekGrid: {
-    gap: 6,
-  },
-  weekRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  weekLabel: {
-    opacity: 0.8,
-  },
-  weekValue: {
-    fontVariant: ['tabular-nums'],
-  },
-  totalRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 10,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-  },
-});
+
