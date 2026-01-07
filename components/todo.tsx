@@ -1,5 +1,6 @@
 import { styles } from '@/constants/styles';
 import { WeekDayKey } from '@/constants/type';
+import { getRandomYoutubeVideoUrlFromChannel } from '@/lib/youtube';
 import { useRouter } from 'expo-router';
 import React from 'react';
 import { Pressable, TextInput } from 'react-native';
@@ -66,10 +67,18 @@ const Todo = ({ todos, setTodos, weekScores, setWeekScores, dailyScores, setDail
     
                     <Pressable
                       onPress={() => {
-                        if (!t?.link) return;
-                        try {
-                          router.push({ pathname: '/webview', params: { url: String(t.link), title: String(t.title ?? 'Web') } });
-                        } catch {}
+                        const go = async () => {
+                          if (!t?.link) return;
+                          try {
+                            let url = String(t.link);
+                            if (url === 'yt_random') {
+                              url = await getRandomYoutubeVideoUrlFromChannel();
+                            }
+                            if (!url || !(url.startsWith('http://') || url.startsWith('https://'))) return;
+                            router.push({ pathname: '/webview', params: { url, title: String(t.title ?? 'Web') } });
+                          } catch {}
+                        };
+                        go();
                       }}
                       style={styles.todoTitleWrap}
                       accessibilityRole="link"
