@@ -1,6 +1,7 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 
@@ -45,9 +46,43 @@ const ITEMS = [
   '⚖️',
 ];
 
+const CHECKED_STORAGE_KEY = 'explore.checked.v1';
+
 export default function TabTwoScreen() {
   const [checked, setChecked] = useState<boolean[]>(() => ITEMS.map(() => false));
   const resetTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    const loadLocal = async () => {
+      try {
+        const saved = await AsyncStorage.getItem(CHECKED_STORAGE_KEY);
+        if (!saved) return;
+
+        const parsed = JSON.parse(saved);
+        if (!Array.isArray(parsed)) return;
+
+        const normalized = ITEMS.map((_, idx) => !!parsed[idx]);
+        setChecked(normalized);
+      } catch (e) {
+        console.log('Failed to load explore checked state:', e);
+      }
+    };
+
+    loadLocal();
+  }, []);
+
+  useEffect(() => {
+    const saveLocal = async () => {
+      try {
+        await AsyncStorage.setItem(CHECKED_STORAGE_KEY, JSON.stringify(checked));
+      } catch (e) {
+        console.log('Failed to save explore checked state:', e);
+      }
+    };
+
+    if (checked.length === 0) return;
+    saveLocal();
+  }, [checked]);
 
   useEffect(() => {
     const scheduleNextReset = () => {
@@ -66,6 +101,9 @@ export default function TabTwoScreen() {
 
       resetTimeoutRef.current = setTimeout(() => {
         setChecked(ITEMS.map(() => false));
+        AsyncStorage.removeItem(CHECKED_STORAGE_KEY).catch((e) => {
+          console.log('Failed to clear explore checked state:', e);
+        });
         scheduleNextReset();
       }, ms);
     };

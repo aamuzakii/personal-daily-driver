@@ -81,7 +81,7 @@ export default function HomeScreen() {
     const loadLocal = async () => {
       try {
         const [savedTodos, savedWeek, savedDaily] = await Promise.all([
-          AsyncStorage.getItem('home.todos.v3'),
+          AsyncStorage.getItem('home.todos.v4'),
           AsyncStorage.getItem('home.weekScores.v3'),
           AsyncStorage.getItem('home.dailyScores.v3'),
         ]);
@@ -124,7 +124,7 @@ export default function HomeScreen() {
   useEffect(() => {
     const saveLocalTodos = async () => {
       try {
-        await AsyncStorage.setItem('home.todos.v3', JSON.stringify(todos));
+        await AsyncStorage.setItem('home.todos.v4', JSON.stringify(todos));
       } catch (e) {
         console.log('Failed to save todos:', e);
       }
