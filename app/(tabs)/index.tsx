@@ -6,10 +6,13 @@ import {
   Linking,
   PermissionsAndroid,
   Platform,
-  ToastAndroid
+  View
 } from 'react-native';
 
 import ParallaxScrollView from '@/components/parallax-scroll-view';
+import Pie from '@/components/pie';
+import { ThemedText } from '@/components/themed-text';
+import { ThemedView } from '@/components/themed-view';
 import Todo from '@/components/todo';
 import Wellbeing from '@/components/wellbeing';
 import { styles } from '@/constants/styles';
@@ -27,6 +30,14 @@ type TodoItem = {
 };
 
 type DailyScores = Record<string, number>;
+
+const HEADER_ROTATE_INTERVAL_MS = 1_000;
+
+const HEADER_QUOTES = [
+  'Keep going. Small steps, every day.',
+  'Discipline is choosing what you want most over what you want now.',
+  'Do the basics. Repeat. Win.',
+] as const;
 
 
 export default function HomeScreen() {
@@ -162,8 +173,8 @@ export default function HomeScreen() {
     const sendToApi = () => {
       fetch(`https://home-dashboard-lac.vercel.app/api/quran/${quranMinutes}/210`)
         .then((res) => {
-          ToastAndroid.show(`Status: ${res.status}`, ToastAndroid.SHORT);
-          return console.log('Ping API status:', res.status)
+          // ToastAndroid.show(`Status: ${res.status}`, ToastAndroid.SHORT);
+          // return console.log('Ping API status:', res.status)
         })
         .catch((err) => console.log('API error:', err));
     };
@@ -292,16 +303,48 @@ export default function HomeScreen() {
     }
   };
 
+  const [headerIndex, setHeaderIndex] = useState(0);
+
+  useEffect(() => {
+    const slidesCount = 1 + HEADER_QUOTES.length;
+    const id = setInterval(() => {
+      setHeaderIndex((prev) => (prev + 1) % slidesCount);
+    }, HEADER_ROTATE_INTERVAL_MS);
+
+    return () => clearInterval(id);
+  }, []);
+
+  const headerSlide =
+    headerIndex === 0 ? (
+      <Image
+        source={require('@/assets/images/tidur-dua-jam.jpg')}
+        style={styles.reactLogo}
+        resizeMode="cover"
+      />
+    ) : (
+      <ThemedView
+        style={{
+          flex: 1,
+          alignItems: 'center',
+          justifyContent: 'center',
+          paddingHorizontal: 18,
+        }}>
+        <View style={{ maxWidth: 520 }}>
+          <ThemedText type="title" style={{ textAlign: 'center' }}>
+            {HEADER_QUOTES[headerIndex - 1]}
+          </ThemedText>
+        </View>
+      </ThemedView>
+    );
+
   return (
     <ParallaxScrollView
       headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
       headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
+        headerSlide
       }>
       <Button title="Reset local todo" onPress={handleResetLocal} />
+      <Pie />
       {/* <Button title="Fetch YT channel videos Log" onPress={handleFetchChannelVideos} /> */}
       <Todo  todos={todos} setTodos={setTodos} weekScores={weekScores} setWeekScores={setWeekScores} dailyScores={dailyScores} setDailyScores={setDailyScores} />
       <Wellbeing handleLoadQuranUsage={handleLoadQuranUsage} quranMinutes={quranMinutes} loadingUsage={loadingUsage} quranWeek={quranWeek} loadQuranWeek={loadQuranWeek} handleLoadUsage={handleLoadUsage} twitterMinutes={twitterMinutes} usageError={usageError} backgroundTaskStatus={backgroundTaskStatus} handleOpenSettings={handleOpenSettings} handleOpenUsageAccessSettings={handleOpenUsageAccessSettings}></Wellbeing>
