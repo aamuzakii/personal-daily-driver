@@ -1,112 +1,116 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
-
-import { Collapsible } from '@/components/ui/collapsible';
-import { ExternalLink } from '@/components/external-link';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Fonts } from '@/constants/theme';
+
+import { useEffect, useRef, useState } from 'react';
+import { Pressable, ScrollView, View } from 'react-native';
+
+import { styles } from '@/constants/styles';
+
+const ITEMS = [
+  'Al Ikhlas',
+  'Al Ikhlas',
+  'Al Ikhlas',
+  'Al Falaq',
+  'Al Falaq',
+  'Al Falaq',
+  'An Naas',
+  'An Naas',
+  'An Naas',
+  'أصبحنا وأصبح الملك لله والحمد لله لا إله إلا الله وحده لا شريك له له الملك وله الحمد وهو على كل شيء قدير',
+  'ربِ اسألك خير ما في هذا اليوم وخير ما بعده واعوذ بك من شر ما في هذا اليوم وشر ما بعده',
+  'ربِّ اعوذ بك من الكسل وسوء الكبر ربِّ اعوذ بك من عذاب في النار وعذاب في القبر',
+  'اللهم بك اصبحنا',
+  'Sayyidul Istighfar',
+  'اللهم عافني في بدني. اللَّهمَّ إنِّي أعوذُ بِكَ منَ الكُفْرِ والفقرِ اللَّهمَّ إنِّي أعوذُ بكَ من عذابِ القبرِ',
+  'اللهم عافني في بدني. اللَّهمَّ إنِّي أعوذُ بِكَ منَ الكُفْرِ والفقرِ اللَّهمَّ إنِّي أعوذُ بكَ من عذابِ القبرِ',
+  'اللهم عافني في بدني. اللَّهمَّ إنِّي أعوذُ بِكَ منَ الكُفْرِ والفقرِ اللَّهمَّ إنِّي أعوذُ بكَ من عذابِ القبرِ',
+  'اني أسألك العفو والعافية',
+  'اللهم عالم الغيب',
+  'رضيت',
+  'رضيت',
+  'رضيت',
+  'بسم الله الذي لا يضر مع اسمه',
+  'بسم الله الذي لا يضر مع اسمه',
+  'بسم الله الذي لا يضر مع اسمه',
+  'اعوذ بكلمات الله',
+  'اعوذ بكلمات الله',
+  'اعوذ بكلمات الله',
+  'يا حي يا قيوم',
+  'اصبحنا على فطرة الاسلام',
+  'لا اله الا الله واحده لا شريك له',
+  'ilmu, rizki, amal',
+  'subhanallah wa bihamdih 100',
+  'istigfar 100',
+  '2 ayat terakhir Al Baqarah',
+  '⚖️',
+];
 
 export default function TabTwoScreen() {
+  const [checked, setChecked] = useState<boolean[]>(() => ITEMS.map(() => false));
+  const resetTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    const scheduleNextReset = () => {
+      if (resetTimeoutRef.current) clearTimeout(resetTimeoutRef.current);
+
+      const now = new Date();
+      const candidates = [11, 23].map((hour) => {
+        const d = new Date(now);
+        d.setHours(hour, 0, 0, 0);
+        if (d.getTime() <= now.getTime()) d.setDate(d.getDate() + 1);
+        return d;
+      });
+
+      const next = candidates.sort((a, b) => a.getTime() - b.getTime())[0];
+      const ms = Math.max(0, next.getTime() - now.getTime());
+
+      resetTimeoutRef.current = setTimeout(() => {
+        setChecked(ITEMS.map(() => false));
+        scheduleNextReset();
+      }, ms);
+    };
+
+    scheduleNextReset();
+    return () => {
+      if (resetTimeoutRef.current) clearTimeout(resetTimeoutRef.current);
+    };
+  }, []);
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
-      headerImage={
-        <IconSymbol
-          size={310}
-          color="#808080"
-          name="chevron.left.forwardslash.chevron.right"
-          style={styles.headerImage}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText
-          type="title"
-          style={{
-            fontFamily: Fonts.rounded,
-          }}>
-          Explore
-        </ThemedText>
+    <ScrollView
+      style={{ flex: 1 }}
+      contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 24, paddingBottom: 24 }}
+    >
+      <View style={{ height: 24 }} />
+      <ThemedView style={{ padding: 16, borderRadius: 16, borderWidth: 1, borderColor: 'rgba(127,127,127,0.25)' }}>
+        <ThemedView style={styles.titleContainer}>
+          <ThemedView style={styles.todoCard}>
+            <ThemedText type="subtitle">Todo</ThemedText>
+            <ThemedView style={styles.todoList}>
+              {ITEMS.map((title, idx) => {
+                const isChecked = !!checked[idx];
+                return (
+                  <ThemedView key={`${idx}-${title}`} style={styles.todoRow}>
+                    <Pressable
+                      onPress={() => {
+                        setChecked((prev) => prev.map((v, i) => (i === idx ? !v : v)));
+                      }}
+                      style={[styles.checkbox, isChecked && styles.checkboxChecked]}
+                      accessibilityRole="checkbox"
+                      accessibilityState={{ checked: isChecked }}
+                    >
+                      <ThemedText style={styles.checkboxText}>{isChecked ? '✓' : ''}</ThemedText>
+                    </Pressable>
+                    <ThemedView style={styles.todoTitleWrap}>
+                      <ThemedText style={[styles.todoTitle, isChecked && styles.todoTitleDone]}>{title}</ThemedText>
+                    </ThemedView>
+                  </ThemedView>
+                );
+              })}
+            </ThemedView>
+          </ThemedView>
+        </ThemedView>
       </ThemedView>
-      <ThemedText>This app includes example code to help you get started.</ThemedText>
-      <Collapsible title="File-based routing">
-        <ThemedText>
-          This app has two screens:{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/explore.tsx</ThemedText>
-        </ThemedText>
-        <ThemedText>
-          The layout file in <ThemedText type="defaultSemiBold">app/(tabs)/_layout.tsx</ThemedText>{' '}
-          sets up the tab navigator.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/router/introduction">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Android, iOS, and web support">
-        <ThemedText>
-          You can open this project on Android, iOS, and the web. To open the web version, press{' '}
-          <ThemedText type="defaultSemiBold">w</ThemedText> in the terminal running this project.
-        </ThemedText>
-      </Collapsible>
-      <Collapsible title="Images">
-        <ThemedText>
-          For static images, you can use the <ThemedText type="defaultSemiBold">@2x</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">@3x</ThemedText> suffixes to provide files for
-          different screen densities
-        </ThemedText>
-        <Image
-          source={require('@/assets/images/react-logo.png')}
-          style={{ width: 100, height: 100, alignSelf: 'center' }}
-        />
-        <ExternalLink href="https://reactnative.dev/docs/images">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Light and dark mode components">
-        <ThemedText>
-          This template has light and dark mode support. The{' '}
-          <ThemedText type="defaultSemiBold">useColorScheme()</ThemedText> hook lets you inspect
-          what the user&apos;s current color scheme is, and so you can adjust UI colors accordingly.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/develop/user-interface/color-themes/">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Animations">
-        <ThemedText>
-          This template includes an example of an animated component. The{' '}
-          <ThemedText type="defaultSemiBold">components/HelloWave.tsx</ThemedText> component uses
-          the powerful{' '}
-          <ThemedText type="defaultSemiBold" style={{ fontFamily: Fonts.mono }}>
-            react-native-reanimated
-          </ThemedText>{' '}
-          library to create a waving hand animation.
-        </ThemedText>
-        {Platform.select({
-          ios: (
-            <ThemedText>
-              The <ThemedText type="defaultSemiBold">components/ParallaxScrollView.tsx</ThemedText>{' '}
-              component provides a parallax effect for the header image.
-            </ThemedText>
-          ),
-        })}
-      </Collapsible>
-    </ParallaxScrollView>
+    </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  headerImage: {
-    color: '#808080',
-    bottom: -90,
-    left: -35,
-    position: 'absolute',
-  },
-  titleContainer: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-});

@@ -1,9 +1,18 @@
 import { styles } from '@/constants/styles';
 import { WeekDayKey } from '@/constants/type';
+import { useRouter } from 'expo-router';
 import React from 'react';
-import { Pressable, TextInput, View } from 'react-native';
+import { Pressable, TextInput } from 'react-native';
 import { ThemedText } from './themed-text';
 import { ThemedView } from './themed-view';
+
+type TodoRow = {
+  id: string;
+  title: string;
+  score: number;
+  done: boolean;
+  link?: string;
+};
 
 function getTodayKey(d = new Date()): WeekDayKey {
   const js = d.getDay();
@@ -17,20 +26,35 @@ function getTodayKey(d = new Date()): WeekDayKey {
 }
 
 
-const Todo = ({ todos, setTodos, weekScores, setWeekScores}: { todos: any, setTodos: any, weekScores: any, setWeekScores: any}) => {
+function formatDayLabel(key: WeekDayKey): string {
+  return String(key).slice(0, 1).toUpperCase() + String(key).slice(1);
+}
+
+
+const Todo = ({ todos, setTodos, weekScores, setWeekScores, dailyScores, setDailyScores}: { todos: TodoRow[], setTodos: any, weekScores: any, setWeekScores: any, dailyScores: any, setDailyScores: any}) => {
+  const todayKey = getTodayKey();
+  const router = useRouter();
+  const totalCheckedScore = (Array.isArray(todos) ? todos : []).reduce((sum: number, t: TodoRow) => {
+    if (!t?.done) return sum;
+    const score = Number(t?.score ?? 0);
+    return sum + (Number.isFinite(score) ? score : 0);
+  }, 0);
+
   return (
           <ThemedView style={styles.titleContainer}>
             <ThemedView style={styles.todoCard}>
               <ThemedText type="subtitle">Todo</ThemedText>
+              <ThemedText>{formatDayLabel(todayKey)}</ThemedText>
+              <ThemedText>Total: {totalCheckedScore}</ThemedText>
               <ThemedView style={styles.todoList}>
-                {todos.map((t) => (
+                {todos.map((t: TodoRow) => (
                   <ThemedView key={t.id} style={styles.todoRow}>
                     <Pressable
                       onPress={() => {
                         const todayKey = getTodayKey();
                         const delta = t.done ? -t.score : t.score;
-                        setTodos((prev) => prev.map((p) => (p.id === t.id ? { ...p, done: !p.done } : p)));
-                        setWeekScores((prev) => ({
+                        setTodos((prev: TodoRow[]) => prev.map((p: TodoRow) => (p.id === t.id ? { ...p, done: !p.done } : p)));
+                        setWeekScores((prev: any) => ({
                           ...prev,
                           [todayKey]: (prev[todayKey] ?? 0) + delta,
                         }));
@@ -40,9 +64,18 @@ const Todo = ({ todos, setTodos, weekScores, setWeekScores}: { todos: any, setTo
                       <ThemedText style={styles.checkboxText}>{t.done ? '✓' : ''}</ThemedText>
                     </Pressable>
     
-                    <ThemedView style={styles.todoTitleWrap}>
+                    <Pressable
+                      onPress={() => {
+                        if (!t?.link) return;
+                        try {
+                          router.push({ pathname: '/webview', params: { url: String(t.link), title: String(t.title ?? 'Web') } });
+                        } catch {}
+                      }}
+                      style={styles.todoTitleWrap}
+                      accessibilityRole="link"
+                    >
                       <ThemedText style={[styles.todoTitle, t.done && styles.todoTitleDone]}>{t.title}</ThemedText>
-                    </ThemedView>
+                    </Pressable>
     
                     <ThemedView style={styles.scoreWrap}>
                       <ThemedText style={styles.scoreLabel}>score</ThemedText>
@@ -52,11 +85,11 @@ const Todo = ({ todos, setTodos, weekScores, setWeekScores}: { todos: any, setTo
                           const next = Number(String(txt).replace(/[^0-9]/g, ''));
                           const nextScore = Number.isFinite(next) ? next : t.score;
                           const delta = nextScore - t.score;
-                          setTodos((prev) => prev.map((p) => (p.id === t.id ? { ...p, score: nextScore } : p)));
+                          setTodos((prev: TodoRow[]) => prev.map((p: TodoRow) => (p.id === t.id ? { ...p, score: nextScore } : p)));
     
                           if (t.done && delta !== 0) {
                             const todayKey = getTodayKey();
-                            setWeekScores((prev) => ({
+                            setWeekScores((prev: any) => ({
                               ...prev,
                               [todayKey]: (prev[todayKey] ?? 0) + delta,
                             }));
@@ -71,35 +104,9 @@ const Todo = ({ todos, setTodos, weekScores, setWeekScores}: { todos: any, setTo
               </ThemedView>
             </ThemedView>
     
-            <ThemedView style={styles.weekCard}>
-              <ThemedText type="subtitle">Weekly report</ThemedText>
-              <ThemedText style={styles.weekHint}>Auto from completed todo scores</ThemedText>
-    
-              <ThemedView style={styles.weekBars}>
-                {(
-                  [
-                    ['Mon', 'monday'],
-                    ['Tue', 'tuesday'],
-                    ['Wed', 'wednesday'],
-                    ['Thu', 'thursday'],
-                    ['Fri', 'friday'],
-                    ['Sat', 'saturday'],
-                    ['Sun', 'sunday'],
-                  ] as const
-                ).map(([label, key]) => {
-                  const rawVal = weekScores[key];
-                  const val = Math.max(0, Number.isFinite(rawVal) ? rawVal : 0);
-                  const barH = 8 + Math.min(72, val * 6);
-                  return (
-                    <ThemedView key={key} style={styles.barCol}>
-                      <View style={[styles.bar, { height: barH }]} />
-                      <ThemedText style={styles.barValue}>{val}</ThemedText>
-                      <ThemedText style={styles.barLabel}>{label}</ThemedText>
-                    </ThemedView>
-                  );
-                })}
-              </ThemedView>
-            </ThemedView>
+
+    {/* i just  */}
+
           </ThemedView>
   )
 }

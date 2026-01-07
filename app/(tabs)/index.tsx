@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Image } from 'expo-image';
 import { useEffect, useState } from 'react';
 import {
+  Image,
   Linking,
   PermissionsAndroid,
   Platform,
@@ -19,9 +19,12 @@ import { getQuranMinutes, getQuranWeekBreakdown, getTwitterMinutes, openUsageAcc
 type TodoItem = {
   id: string;
   title: string;
+  link: string;
   score: number;
   done: boolean;
 };
+
+type DailyScores = Record<string, number>;
 
 
 export default function HomeScreen() {
@@ -43,6 +46,8 @@ export default function HomeScreen() {
     sunday: 0,
   });
 
+  const [dailyScores, setDailyScores] = useState<DailyScores>({});
+
   const loadQuranWeek = async () => {
     setLoadingUsage(true);
     setUsageError(null);
@@ -61,23 +66,34 @@ export default function HomeScreen() {
   useEffect(() => {
     const loadLocal = async () => {
       try {
-        const [savedTodos, savedWeek] = await Promise.all([
-          AsyncStorage.getItem('home.todos.v1'),
-          AsyncStorage.getItem('home.weekScores.v1'),
+        const [savedTodos, savedWeek, savedDaily] = await Promise.all([
+          AsyncStorage.getItem('home.todos.v3'),
+          AsyncStorage.getItem('home.weekScores.v3'),
+          AsyncStorage.getItem('home.dailyScores.v3'),
         ]);
 
         if (savedTodos) {
           setTodos(JSON.parse(savedTodos));
         } else {
           setTodos([
-            { id: 'recite', title: 'recite', score: 10, done: false },
-            { id: 'hsk', title: 'HSK', score: 3, done: false },
-            { id: 'arab', title: 'learn arab', score: 4, done: false },
+            { id: 'zikir-pagi', title: 'Zikir Pagi', link: 'https://example.com/a', score: 10, done: false },
+            { id: 'zikir-petang', title: 'Zikir Petang', link: 'https://example.com/b', score: 10, done: false },
+            { id: 'duha', title: 'Shalat Dhuha', link: 'https://example.com/c', score: 10, done: false },
+            { id: 'witir', title: 'Shalat Witir', link: 'https://example.com/d', score: 10, done: false },
+            { id: 'mutun', title: 'Familiar Mutun + Riyadhushhalihin: 10 menit sehari', link: 'https://example.com/e', score: 10, done: false },
+            { id: 'recite', title: 'Baca Quran 1 Juz / 30 menit', link: 'https://example.com/f', score: 10, done: false },
+            { id: 'hsk', title: 'HSK 5', link: 'https://example.com/g', score: 3, done: false },
+            { id: 'speaking-english', title: 'Speaking Elsa 10 menit', link: 'https://example.com/h', score: 3, done: false },
+            { id: 'arab-vocab', title: '5 Arabic Vocab Amiyah', link: 'https://example.com/i', score: 4, done: false },
           ]);
         }
 
         if (savedWeek) {
           setWeekScores(JSON.parse(savedWeek));
+        }
+
+        if (savedDaily) {
+          setDailyScores(JSON.parse(savedDaily));
         }
       } catch (e) {
         console.log('Failed to load local todo/week data:', e);
@@ -89,7 +105,7 @@ export default function HomeScreen() {
   useEffect(() => {
     const saveLocalTodos = async () => {
       try {
-        await AsyncStorage.setItem('home.todos.v1', JSON.stringify(todos));
+        await AsyncStorage.setItem('home.todos.v3', JSON.stringify(todos));
       } catch (e) {
         console.log('Failed to save todos:', e);
       }
@@ -101,13 +117,24 @@ export default function HomeScreen() {
   useEffect(() => {
     const saveLocalWeek = async () => {
       try {
-        await AsyncStorage.setItem('home.weekScores.v1', JSON.stringify(weekScores));
+        await AsyncStorage.setItem('home.weekScores.v3', JSON.stringify(weekScores));
       } catch (e) {
         console.log('Failed to save week scores:', e);
       }
     };
     saveLocalWeek();
   }, [weekScores]);
+
+  useEffect(() => {
+    const saveLocalDaily = async () => {
+      try {
+        await AsyncStorage.setItem('home.dailyScores.v3', JSON.stringify(dailyScores));
+      } catch (e) {
+        console.log('Failed to save daily scores:', e);
+      }
+    };
+    saveLocalDaily();
+  }, [dailyScores]);
 
     // Continuously send Quran minutes to API every 2 minutes
   useEffect(() => {
@@ -189,6 +216,13 @@ export default function HomeScreen() {
     }
   };
 
+  useEffect(() => {
+    const run = async () => {
+      await handleLoadQuranUsage();
+    };
+    run();
+  }, []);
+
   const handleOpenSettings = () => {
     Linking.openSettings();
   };
@@ -211,7 +245,7 @@ export default function HomeScreen() {
           style={styles.reactLogo}
         />
       }>
-      <Todo  todos={todos} setTodos={setTodos} weekScores={weekScores} setWeekScores={setWeekScores} />
+      <Todo  todos={todos} setTodos={setTodos} weekScores={weekScores} setWeekScores={setWeekScores} dailyScores={dailyScores} setDailyScores={setDailyScores} />
       <Wellbeing handleLoadQuranUsage={handleLoadQuranUsage} quranMinutes={quranMinutes} loadingUsage={loadingUsage} quranWeek={quranWeek} loadQuranWeek={loadQuranWeek} handleLoadUsage={handleLoadUsage} twitterMinutes={twitterMinutes} usageError={usageError} backgroundTaskStatus={backgroundTaskStatus} handleOpenSettings={handleOpenSettings} handleOpenUsageAccessSettings={handleOpenUsageAccessSettings}></Wellbeing>
     </ParallaxScrollView>
   );
