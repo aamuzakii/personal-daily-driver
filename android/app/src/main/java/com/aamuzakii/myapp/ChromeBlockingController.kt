@@ -25,7 +25,10 @@ class ChromeBlockingController(
                         val chromeMinutes = getChromeMinutes()
                         val fg = getCurrentForegroundPackage()
                         Log.d("ChromeBlockingController", "Blocker loop: minutes=" + chromeMinutes + ", fg=" + fg)
-                        if (chromeMinutes >= limitMinutes && fg == "com.android.chrome") {
+                        if (
+                            chromeMinutes >= limitMinutes &&
+                            (fg == "com.android.chrome" || fg == "com.google.android.youtube")
+                        ) {
                             Log.d(
                                 "ChromeBlockingController",
                                 "Chrome limit reached ($chromeMinutes >= $limitMinutes). Sending to home."

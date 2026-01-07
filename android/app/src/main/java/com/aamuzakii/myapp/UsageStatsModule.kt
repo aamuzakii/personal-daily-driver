@@ -366,7 +366,7 @@ class UsageStatsModule(private val reactContext: ReactApplicationContext) :
 
     @ReactMethod
     fun startChromeBlocking() {
-        startChromeBlockingWithLimit(1)
+        startChromeBlockingWithLimit(1) // LIMIT IS TEMPORARILY HARDCODED HERE
     }
 
     @ReactMethod
