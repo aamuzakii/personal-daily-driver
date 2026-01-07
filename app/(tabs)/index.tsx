@@ -31,12 +31,13 @@ type TodoItem = {
 
 type DailyScores = Record<string, number>;
 
-const HEADER_ROTATE_INTERVAL_MS = 1_000;
+const HEADER_ROTATE_INTERVAL_MS = 1_000 * 60 * 60 * 24;
 
 const HEADER_QUOTES = [
-  'Keep going. Small steps, every day.',
-  'Discipline is choosing what you want most over what you want now.',
-  'Do the basics. Repeat. Win.',
+  'Bapa gue banyak minum air biar batu ginjal ke kikis',
+  'Doa di waktu tahajud bagai anak panah yg tidak meleset',
+  'Shalat lebih gede pahalanya daripada berbakti kepada orang tua',
+  'Imam Bukhari awalnya buta, lalu ibunya terus berdoa tiap malam, hingga tiba-tiba anaknya bisa melihat',
 ] as const;
 
 
@@ -343,7 +344,7 @@ export default function HomeScreen() {
       headerImage={
         headerSlide
       }>
-      <Button title="Reset local todo" onPress={handleResetLocal} />
+      {/* <Button title="Reset local todo" onPress={handleResetLocal} /> */}
       <Pie />
       {/* <Button title="Fetch YT channel videos Log" onPress={handleFetchChannelVideos} /> */}
       <Todo  todos={todos} setTodos={setTodos} weekScores={weekScores} setWeekScores={setWeekScores} dailyScores={dailyScores} setDailyScores={setDailyScores} />

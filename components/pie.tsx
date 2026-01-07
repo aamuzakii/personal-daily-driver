@@ -1,6 +1,7 @@
 import { styles } from '@/constants/styles';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
+import Svg, { Circle, G } from 'react-native-svg';
 import { ThemedText } from './themed-text';
 import { ThemedView } from './themed-view';
 
@@ -28,68 +29,39 @@ function TwoSlicePie({
   colorA: string;
   colorB: string;
 }) {
-  const r = clamp01(ratio);
-  const angle = r * 360;
-  const isOverHalf = angle > 180;
-  const rightRotation = isOverHalf ? 180 : angle;
-  const leftRotation = isOverHalf ? angle - 180 : 0;
-
-  const half = size / 2;
+  const progress = clamp01(ratio);
+  const strokeWidth = Math.max(6, Math.round(size * 0.1));
+  const r = (size - strokeWidth) / 2;
+  const cx = size / 2;
+  const cy = size / 2;
+  const circumference = 2 * Math.PI * r;
+  const dashOffset = circumference * (1 - progress);
 
   return (
-    <View
-      style={{
-        width: size,
-        height: size,
-        borderRadius: size / 2,
-        backgroundColor: colorB,
-        overflow: 'hidden',
-      }}>
-      <View
-        style={{
-          position: 'absolute',
-          top: 0,
-          right: 0,
-          width: half,
-          height: size,
-          overflow: 'hidden',
-        }}>
-        <View
-          style={{
-            position: 'absolute',
-            left: -half,
-            width: size,
-            height: size,
-            borderRadius: size / 2,
-            backgroundColor: colorA,
-            transform: [{ rotateZ: `${rightRotation}deg` }],
-          }}
-        />
-      </View>
-
-      {isOverHalf && (
-        <View
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            width: half,
-            height: size,
-            overflow: 'hidden',
-          }}>
-          <View
-            style={{
-              position: 'absolute',
-              left: 0,
-              width: size,
-              height: size,
-              borderRadius: size / 2,
-              backgroundColor: colorA,
-              transform: [{ rotateZ: `${leftRotation}deg` }],
-            }}
+    <View style={{ width: size, height: size }}>
+      <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+        <G rotation={-90} originX={cx} originY={cy}>
+          <Circle
+            cx={cx}
+            cy={cy}
+            r={r}
+            stroke={colorB}
+            strokeWidth={strokeWidth}
+            fill="transparent"
           />
-        </View>
-      )}
+          <Circle
+            cx={cx}
+            cy={cy}
+            r={r}
+            stroke={colorA}
+            strokeWidth={strokeWidth}
+            fill="transparent"
+            strokeDasharray={`${circumference} ${circumference}`}
+            strokeDashoffset={dashOffset}
+            strokeLinecap="round"
+          />
+        </G>
+      </Svg>
     </View>
   );
 }
@@ -125,8 +97,10 @@ function Pie() {
 
   const weekly = data?.weeklyMinutes ?? 0;
   const obligation = data?.obligationMinutes ?? 0;
-  const total = weekly + obligation;
-  const ratio = total > 0 ? weekly / total : 0;
+  // const total = weekly + obligation;
+  const ratio = obligation > 0 ? weekly / obligation : 0;
+
+  const owe = obligation - weekly
 
   return (
     <ThemedView style={styles.stepContainer}>
@@ -144,8 +118,10 @@ function Pie() {
 
           <ThemedView style={{ flex: 1 }}>
             <ThemedText type="defaultSemiBold">{data.name}</ThemedText>
-            <ThemedText style={{ marginTop: 6 }}>Weekly: {weekly} min</ThemedText>
-            <ThemedText>Remaining: {obligation} min</ThemedText>
+            {/* <ThemedText style={{ marginTop: 6 }}>Weekly: {weekly} min</ThemedText> */}
+            <ThemedText>
+              Utang: {Math.floor(owe / 60)} jam {owe % 60} menit
+            </ThemedText>
           </ThemedView>
         </ThemedView>
       )}
