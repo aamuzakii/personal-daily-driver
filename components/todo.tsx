@@ -47,6 +47,22 @@ const Todo = ({ todos, setTodos, weekScores, setWeekScores, dailyScores, setDail
               <ThemedText type="subtitle">Todo</ThemedText>
               <ThemedText>{formatDayLabel(todayKey)}</ThemedText>
               <ThemedText>Total: {totalCheckedScore}</ThemedText>
+              <ThemedView style={{ flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 8 }}>
+                <Pressable
+                  onPress={() => {
+                    const todayKey = getTodayKey();
+                    setTodos((prev: TodoRow[]) => prev.map((p: TodoRow) => ({ ...p, done: false })));
+                    setWeekScores((prev: any) => ({
+                      ...prev,
+                      [todayKey]: 0,
+                    }));
+                  }}
+                  style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(127,127,127,0.25)' }}
+                  accessibilityRole="button"
+                >
+                  <ThemedText>Clear All</ThemedText>
+                </Pressable>
+              </ThemedView>
               <ThemedView style={styles.todoList}>
                 {todos.map((t: TodoRow) => (
                   <ThemedView key={t.id} style={styles.todoRow}>

@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useEffect, useState } from 'react';
 import {
-  Button,
+  AppState,
   Image,
   Linking,
   PermissionsAndroid,
@@ -17,6 +17,7 @@ import Todo from '@/components/todo';
 import Wellbeing from '@/components/wellbeing';
 import { styles } from '@/constants/styles';
 import { WeekDayKey } from '@/constants/type';
+import { ensureResetMarkTable, hasResetMark, markReset, openAppDb, toYmd } from '@/lib/resetMark';
 import { fetchChannelVideoUrls } from '@/lib/youtubeApi';
 import { checkBackgroundTaskStatus, registerBackgroundTask } from '../backgroundTasks';
 import { getQuranMinutes, getQuranWeekBreakdown, getTwitterMinutes, openUsageAccessSettings, type QuranWeekBreakdown } from '../usageStats';
@@ -33,6 +34,17 @@ type DailyScores = Record<string, number>;
 
 const HEADER_ROTATE_INTERVAL_MS = 1_000 * 60 * 60 * 24;
 
+function getTodayKey(d = new Date()): WeekDayKey {
+  const js = d.getDay();
+  if (js === 0) return 'sunday';
+  if (js === 1) return 'monday';
+  if (js === 2) return 'tuesday';
+  if (js === 3) return 'wednesday';
+  if (js === 4) return 'thursday';
+  if (js === 5) return 'friday';
+  return 'saturday';
+}
+
 const HEADER_QUOTES = [
   'Bapa gue banyak minum air biar batu ginjal ke kikis',
   'Doa di waktu tahajud bagai anak panah yg tidak meleset',
@@ -42,6 +54,8 @@ const HEADER_QUOTES = [
 
 
 export default function HomeScreen() {
+  const db = openAppDb();
+
   const [twitterMinutes, setTwitterMinutes] = useState<number | null>(null);
   const [quranMinutes, setQuranMinutes] = useState<number | null>(null);
   const [quranWeek, setQuranWeek] = useState<QuranWeekBreakdown | null>(null);
@@ -73,6 +87,27 @@ export default function HomeScreen() {
   });
 
   const [dailyScores, setDailyScores] = useState<DailyScores>({});
+
+  const maybeResetHomeTodoForToday = async () => {
+    try {
+      await ensureResetMarkTable(db);
+      const resetKey = `${toYmd(new Date())}|home_todo`;
+      const already = await hasResetMark(db, resetKey);
+      if (already) return false;
+
+      const todayKey = getTodayKey();
+      setTodos((prev) => (Array.isArray(prev) ? prev.map((t) => ({ ...t, done: false })) : prev));
+      setWeekScores((prev) => ({
+        ...prev,
+        [todayKey]: 0,
+      }));
+      await markReset(db, resetKey);
+      return true;
+    } catch (e) {
+      console.log('Failed to run home todo daily reset check:', e);
+      return false;
+    }
+  };
 
   const loadQuranWeek = async () => {
     setLoadingUsage(true);
@@ -126,11 +161,21 @@ export default function HomeScreen() {
         if (savedDaily) {
           setDailyScores(JSON.parse(savedDaily));
         }
+
+        await maybeResetHomeTodoForToday();
       } catch (e) {
         console.log('Failed to load local todo/week data:', e);
       }
     };
     loadLocal();
+  }, []);
+
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state !== 'active') return;
+      maybeResetHomeTodoForToday();
+    });
+    return () => sub.remove();
   }, []);
 
   useEffect(() => {

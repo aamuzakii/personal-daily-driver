@@ -1,9 +1,11 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 
+import { ensureResetMarkTable, execSql, hasResetMark, markReset, openAppDb, toYmd } from '@/lib/resetMark';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useEffect, useRef, useState } from 'react';
-import { Pressable, ScrollView, View } from 'react-native';
+import * as FileSystem from 'expo-file-system';
+import { useEffect, useState } from 'react';
+import { AppState, Platform, Pressable, ScrollView, View } from 'react-native';
 
 import { styles } from '@/constants/styles';
 
@@ -50,11 +52,139 @@ const CHECKED_STORAGE_KEY = 'explore.checked.v1';
 
 export default function TabTwoScreen() {
   const [checked, setChecked] = useState<boolean[]>(() => ITEMS.map(() => false));
-  const resetTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [exporting, setExporting] = useState(false);
+
+  const db = openAppDb();
+
+  const getCurrentResetKey = () => {
+    const now = new Date();
+    const today11 = new Date(now);
+    today11.setHours(11, 0, 0, 0);
+
+    const today23 = new Date(now);
+    today23.setHours(23, 0, 0, 0);
+
+    if (now.getTime() >= today23.getTime()) return `${toYmd(now)}|evening`;
+    if (now.getTime() >= today11.getTime()) return `${toYmd(now)}|morning`;
+
+    const y = new Date(now);
+    y.setDate(y.getDate() - 1);
+    return `${toYmd(y)}|evening`;
+  };
+
+  const resetChecked = async () => {
+    setChecked(ITEMS.map(() => false));
+    await AsyncStorage.removeItem(CHECKED_STORAGE_KEY).catch((e) => {
+      console.log('Failed to clear explore checked state:', e);
+    });
+  };
+
+  const maybeResetForCurrentPeriod = async () => {
+    try {
+      await ensureResetMarkTable(db);
+      const resetKey = getCurrentResetKey();
+      const already = await hasResetMark(db, resetKey);
+      if (already) return false;
+
+      await resetChecked();
+      await markReset(db, resetKey);
+      return true;
+    } catch (e) {
+      console.log('Failed to run explore reset check:', e);
+      return false;
+    }
+  };
+
+  const sqlEscape = (v: any) => {
+    if (v === null || v === undefined) return 'NULL';
+    if (typeof v === 'number') return Number.isFinite(v) ? String(v) : 'NULL';
+    if (typeof v === 'boolean') return v ? '1' : '0';
+    const s = String(v);
+    return `'${s.replace(/'/g, "''")}'`;
+  };
+
+  const exportSqlDump = async () => {
+    if (exporting) return;
+    setExporting(true);
+    try {
+      const tblRes = await execSql(
+        db,
+        `SELECT name, sql FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name`
+      );
+      const tables: { name: string; sql: string }[] = [];
+
+      for (let i = 0; i < (tblRes?.rows?.length ?? 0); i++) {
+        const row = tblRes.rows.item(i);
+        if (!row?.name || !row?.sql) continue;
+        tables.push({ name: row.name, sql: row.sql });
+      }
+
+      let dump = '';
+      dump += 'PRAGMA foreign_keys=OFF;\n';
+      dump += 'BEGIN TRANSACTION;\n';
+
+      for (const t of tables) {
+        dump += `DROP TABLE IF EXISTS ${t.name};\n`;
+        dump += `${t.sql};\n`;
+      }
+
+      for (const t of tables) {
+        const infoRes = await execSql(db, `PRAGMA table_info(${t.name})`);
+        const cols: string[] = [];
+        for (let i = 0; i < (infoRes?.rows?.length ?? 0); i++) {
+          const r = infoRes.rows.item(i);
+          if (r?.name) cols.push(r.name);
+        }
+
+        if (cols.length === 0) continue;
+
+        const dataRes = await execSql(db, `SELECT * FROM ${t.name}`);
+        for (let i = 0; i < (dataRes?.rows?.length ?? 0); i++) {
+          const row = dataRes.rows.item(i);
+          const values = cols.map((c) => sqlEscape(row?.[c]));
+          dump += `INSERT INTO ${t.name} (${cols.join(', ')}) VALUES (${values.join(', ')});\n`;
+        }
+      }
+
+      dump += 'COMMIT;\n';
+
+      const ts = new Date();
+      const stamp = `${ts.getFullYear()}${String(ts.getMonth() + 1).padStart(2, '0')}${String(ts.getDate()).padStart(2, '0')}_${String(
+        ts.getHours()
+      ).padStart(2, '0')}${String(ts.getMinutes()).padStart(2, '0')}${String(ts.getSeconds()).padStart(2, '0')}`;
+
+      if (Platform.OS === 'android' && (FileSystem as any).StorageAccessFramework) {
+        const SAF = (FileSystem as any).StorageAccessFramework;
+        const downloadsTreeUri = 'content://com.android.externalstorage.documents/tree/primary%3ADownload';
+        const perm = await SAF.requestDirectoryPermissionsAsync(downloadsTreeUri);
+        if (!perm.granted) {
+          console.log('SQL dump export cancelled: no directory permission');
+          return;
+        }
+
+        const fileName = `app_dump_${stamp}.sql`;
+        const targetUri = await SAF.createFileAsync(perm.directoryUri, fileName, 'application/sql');
+        await FileSystem.writeAsStringAsync(targetUri, dump, { encoding: 'utf8' as any });
+        console.log('SQL dump exported to Downloads:', targetUri);
+      } else {
+        const dir = (FileSystem as any).documentDirectory ?? (FileSystem as any).cacheDirectory ?? '';
+        const fileUri = `${dir}app_dump_${stamp}.sql`;
+        await FileSystem.writeAsStringAsync(fileUri, dump, { encoding: 'utf8' as any });
+        console.log('SQL dump exported to:', fileUri);
+      }
+    } catch (e) {
+      console.log('Failed to export SQL dump:', e);
+    } finally {
+      setExporting(false);
+    }
+  };
 
   useEffect(() => {
     const loadLocal = async () => {
       try {
+        const didReset = await maybeResetForCurrentPeriod();
+        if (didReset) return;
+
         const saved = await AsyncStorage.getItem(CHECKED_STORAGE_KEY);
         if (!saved) return;
 
@@ -72,6 +202,14 @@ export default function TabTwoScreen() {
   }, []);
 
   useEffect(() => {
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state !== 'active') return;
+      maybeResetForCurrentPeriod();
+    });
+    return () => sub.remove();
+  }, []);
+
+  useEffect(() => {
     const saveLocal = async () => {
       try {
         await AsyncStorage.setItem(CHECKED_STORAGE_KEY, JSON.stringify(checked));
@@ -84,42 +222,28 @@ export default function TabTwoScreen() {
     saveLocal();
   }, [checked]);
 
-  useEffect(() => {
-    const scheduleNextReset = () => {
-      if (resetTimeoutRef.current) clearTimeout(resetTimeoutRef.current);
-
-      const now = new Date();
-      const candidates = [11, 23].map((hour) => {
-        const d = new Date(now);
-        d.setHours(hour, 0, 0, 0);
-        if (d.getTime() <= now.getTime()) d.setDate(d.getDate() + 1);
-        return d;
-      });
-
-      const next = candidates.sort((a, b) => a.getTime() - b.getTime())[0];
-      const ms = Math.max(0, next.getTime() - now.getTime());
-
-      resetTimeoutRef.current = setTimeout(() => {
-        setChecked(ITEMS.map(() => false));
-        AsyncStorage.removeItem(CHECKED_STORAGE_KEY).catch((e) => {
-          console.log('Failed to clear explore checked state:', e);
-        });
-        scheduleNextReset();
-      }, ms);
-    };
-
-    scheduleNextReset();
-    return () => {
-      if (resetTimeoutRef.current) clearTimeout(resetTimeoutRef.current);
-    };
-  }, []);
-
   return (
     <ScrollView
       style={{ flex: 1 }}
       contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 24, paddingBottom: 24 }}
     >
       <View style={{ height: 24 }} />
+      <ThemedView style={{ flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 12, gap: 10 }}>
+        <Pressable
+          onPress={() => {
+            resetChecked();
+          }}
+          style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(127,127,127,0.25)' }}
+        >
+          <ThemedText>Clear All</ThemedText>
+        </Pressable>
+        <Pressable
+          onPress={exportSqlDump}
+          style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(127,127,127,0.25)' }}
+        >
+          <ThemedText>{exporting ? 'Exporting…' : 'Export SQL'}</ThemedText>
+        </Pressable>
+      </ThemedView>
       <ThemedView style={{ padding: 16, borderRadius: 16, borderWidth: 1, borderColor: 'rgba(127,127,127,0.25)' }}>
         <ThemedView style={styles.titleContainer}>
           <ThemedView style={styles.todoCard}>
