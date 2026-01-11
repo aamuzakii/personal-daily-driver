@@ -15,8 +15,10 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import Todo from '@/components/todo';
 import Wellbeing from '@/components/wellbeing';
+import { HEADER_IMAGES, HEADER_QUOTES } from '@/constants/headerItems';
 import { styles } from '@/constants/styles';
 import { WeekDayKey } from '@/constants/type';
+import { getHeaderSelection } from '@/lib/headerRotation';
 import { ensureResetMarkTable, hasResetMark, markReset, openAppDb, toYmd } from '@/lib/resetMark';
 import { fetchChannelVideoUrls } from '@/lib/youtubeApi';
 import { checkBackgroundTaskStatus, registerBackgroundTask } from '../backgroundTasks';
@@ -32,8 +34,6 @@ type TodoItem = {
 
 type DailyScores = Record<string, number>;
 
-const HEADER_ROTATE_INTERVAL_MS = 1_000 * 60 * 60 * 24;
-
 function getTodayKey(d = new Date()): WeekDayKey {
   const js = d.getDay();
   if (js === 0) return 'sunday';
@@ -45,16 +45,11 @@ function getTodayKey(d = new Date()): WeekDayKey {
   return 'saturday';
 }
 
-const HEADER_QUOTES = [
-  'Bapa gue banyak minum air biar batu ginjal ke kikis',
-  'Doa di waktu tahajud bagai anak panah yg tidak meleset',
-  'Shalat lebih gede pahalanya daripada berbakti kepada orang tua',
-  'Imam Bukhari awalnya buta, lalu ibunya terus berdoa tiap malam, hingga tiba-tiba anaknya bisa melihat',
-] as const;
-
 
 export default function HomeScreen() {
   const db = openAppDb();
+
+  const [headerSel, setHeaderSel] = useState<{ type: 'image' | 'quote'; index: number }>({ type: 'image', index: 0 });
 
   const [twitterMinutes, setTwitterMinutes] = useState<number | null>(null);
   const [quranMinutes, setQuranMinutes] = useState<number | null>(null);
@@ -127,6 +122,11 @@ export default function HomeScreen() {
   useEffect(() => {
     const loadLocal = async () => {
       try {
+        try {
+          const sel = await getHeaderSelection();
+          setHeaderSel(sel);
+        } catch {}
+
         const [savedTodos, savedWeek, savedDaily] = await Promise.all([
           AsyncStorage.getItem('home.todos.v4'),
           AsyncStorage.getItem('home.weekScores.v3'),
@@ -168,6 +168,14 @@ export default function HomeScreen() {
       }
     };
     loadLocal();
+  }, []);
+
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state !== 'active') return;
+      getHeaderSelection().then(setHeaderSel).catch(() => {});
+    });
+    return () => sub.remove();
   }, []);
 
   useEffect(() => {
@@ -349,21 +357,10 @@ export default function HomeScreen() {
     }
   };
 
-  const [headerIndex, setHeaderIndex] = useState(0);
-
-  useEffect(() => {
-    const slidesCount = 1 + HEADER_QUOTES.length;
-    const id = setInterval(() => {
-      setHeaderIndex((prev) => (prev + 1) % slidesCount);
-    }, HEADER_ROTATE_INTERVAL_MS);
-
-    return () => clearInterval(id);
-  }, []);
-
   const headerSlide =
-    headerIndex === 0 ? (
+    headerSel.type === 'image' ? (
       <Image
-        source={require('@/assets/images/tidur-dua-jam.jpg')}
+        source={HEADER_IMAGES[headerSel.index] ?? HEADER_IMAGES[0]}
         style={styles.reactLogo}
         resizeMode="cover"
       />
@@ -377,7 +374,7 @@ export default function HomeScreen() {
         }}>
         <View style={{ maxWidth: 520 }}>
           <ThemedText type="title" style={{ textAlign: 'center' }}>
-            {HEADER_QUOTES[headerIndex - 1]}
+            {HEADER_QUOTES[headerSel.index] ?? HEADER_QUOTES[0]}
           </ThemedText>
         </View>
       </ThemedView>
