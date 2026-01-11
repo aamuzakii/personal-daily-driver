@@ -53,7 +53,7 @@ export default function HomeScreen() {
   const db = openAppDb();
 
   const [headerSel, setHeaderSel] = useState<{ type: 'image' | 'quote'; index: number }>({ type: 'image', index: 0 });
-  const [relaxInfo, setRelaxInfo] = useState<{ isRelaxing: boolean; remainingMs: number } | null>(null);
+  const [relaxInfo, setRelaxInfo] = useState<{ isRelaxing: boolean; remainingMs: number; chunkRemainingMs: number } | null>(null);
 
   const [twitterMinutes, setTwitterMinutes] = useState<number | null>(null);
   const [quranMinutes, setQuranMinutes] = useState<number | null>(null);
@@ -134,7 +134,11 @@ export default function HomeScreen() {
         try {
           await tickRelax();
           const rs = await getRelaxState();
-          setRelaxInfo({ isRelaxing: rs.isRelaxing && rs.remainingMs > 0, remainingMs: rs.remainingMs });
+          setRelaxInfo({
+            isRelaxing: rs.isRelaxing && rs.chunkRemainingMs > 0 && rs.remainingMs > 0,
+            remainingMs: rs.remainingMs,
+            chunkRemainingMs: rs.chunkRemainingMs,
+          });
         } catch {}
 
         const [savedTodos, savedWeek, savedDaily] = await Promise.all([
@@ -186,7 +190,13 @@ export default function HomeScreen() {
       getHeaderSelection().then(setHeaderSel).catch(() => {});
       tickRelax()
         .then(getRelaxState)
-        .then((rs) => setRelaxInfo({ isRelaxing: rs.isRelaxing && rs.remainingMs > 0, remainingMs: rs.remainingMs }))
+        .then((rs) =>
+          setRelaxInfo({
+            isRelaxing: rs.isRelaxing && rs.chunkRemainingMs > 0 && rs.remainingMs > 0,
+            remainingMs: rs.remainingMs,
+            chunkRemainingMs: rs.chunkRemainingMs,
+          })
+        )
         .catch(() => {});
     });
     return () => sub.remove();
@@ -415,20 +425,24 @@ export default function HomeScreen() {
               await tickRelax();
               const cur = await getRelaxState();
               let next = cur;
-              if (cur.isRelaxing && cur.remainingMs > 0) {
+              if (cur.isRelaxing && cur.chunkRemainingMs > 0 && cur.remainingMs > 0) {
                 next = await stopRelax();
                 try {
                   startChromeBlocking();
                 } catch {}
               } else {
                 next = await startRelax();
-                if (next.isRelaxing && next.remainingMs > 0) {
+                if (next.isRelaxing && next.chunkRemainingMs > 0 && next.remainingMs > 0) {
                   try {
                     stopChromeBlocking();
                   } catch {}
                 }
               }
-              setRelaxInfo({ isRelaxing: next.isRelaxing && next.remainingMs > 0, remainingMs: next.remainingMs });
+              setRelaxInfo({
+                isRelaxing: next.isRelaxing && next.chunkRemainingMs > 0 && next.remainingMs > 0,
+                remainingMs: next.remainingMs,
+                chunkRemainingMs: next.chunkRemainingMs,
+              });
             } catch (e) {
               console.log('Failed to toggle relax:', e);
             }
@@ -442,7 +456,9 @@ export default function HomeScreen() {
           }}
         >
           <ThemedText>
-            {relaxInfo?.isRelaxing ? `Relaxing (${formatMmSs(relaxInfo.remainingMs)} left)` : `Relax (1h/day) (${formatMmSs(relaxInfo?.remainingMs ?? 0)} left)`}
+            {relaxInfo?.isRelaxing
+              ? `Relaxing (${formatMmSs(relaxInfo.chunkRemainingMs)} left)`
+              : `Relax (15m/session, 1h/day) (${formatMmSs(relaxInfo?.remainingMs ?? 0)} left)`}
           </ThemedText>
         </Pressable>
       </ThemedView>

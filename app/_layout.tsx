@@ -1,7 +1,7 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { AppState } from 'react-native';
 
 import { startChromeBlocking, stopChromeBlocking } from '@/app/usageStats';
@@ -14,11 +14,24 @@ export const unstable_settings = {
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
+  const relaxTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const syncBlockingWithRelax = async () => {
     try {
       await tickRelax();
       const state = await getRelaxState();
+
+      if (relaxTimerRef.current) {
+        clearTimeout(relaxTimerRef.current);
+        relaxTimerRef.current = null;
+      }
+
+      if (state.isRelaxing && state.chunkRemainingMs > 0) {
+        relaxTimerRef.current = setTimeout(() => {
+          syncBlockingWithRelax();
+        }, Math.max(250, state.chunkRemainingMs + 250));
+      }
+
       if (state.isRelaxing && state.remainingMs > 0) {
         try {
           stopChromeBlocking();
@@ -39,6 +52,10 @@ export default function RootLayout() {
     });
     return () => {
       sub.remove();
+      if (relaxTimerRef.current) {
+        clearTimeout(relaxTimerRef.current);
+        relaxTimerRef.current = null;
+      }
       try {
         stopChromeBlocking();
       } catch {}

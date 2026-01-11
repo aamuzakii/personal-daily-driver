@@ -2,6 +2,7 @@ import { execSql, openAppDb, toYmd } from '@/lib/resetMark';
 
 const TABLE = 'relax_mode_daily';
 export const MAX_RELAX_MS_PER_DAY = 60 * 60 * 1000;
+export const RELAX_CHUNK_MS = 15 * 60 * 1000;
 
 type RelaxRow = {
   day: string;
@@ -49,12 +50,17 @@ export const getRelaxState = async () => {
   const additional = row.active_since_ms ? Math.max(0, nowMs() - row.active_since_ms) : 0;
   const used = row.used_ms + additional;
   const remaining = Math.max(0, MAX_RELAX_MS_PER_DAY - used);
+  const chunkElapsed = row.active_since_ms ? additional : 0;
+  const chunkRemaining = row.active_since_ms
+    ? Math.max(0, Math.min(remaining, Math.max(0, RELAX_CHUNK_MS - chunkElapsed)))
+    : 0;
 
   return {
     day,
-    isRelaxing: !!row.active_since_ms,
+    isRelaxing: !!row.active_since_ms && chunkRemaining > 0 && remaining > 0,
     usedMs: used,
     remainingMs: remaining,
+    chunkRemainingMs: chunkRemaining,
   };
 };
 
@@ -99,8 +105,25 @@ export const stopRelax = async () => {
 
 export const tickRelax = async () => {
   const state = await getRelaxState();
-  if (!state.isRelaxing) return state;
-  if (state.remainingMs > 0) return state;
-  await stopRelax();
-  return getRelaxState();
+  if (!state.isRelaxing) {
+    if (state.chunkRemainingMs <= 0) {
+      const db = openAppDb();
+      const day = toYmd(new Date());
+      await ensureTable(db);
+      await ensureTodayRow(db, day);
+      const row = await getRow(db, day);
+      if (row.active_since_ms) {
+        await stopRelax();
+        return getRelaxState();
+      }
+    }
+    return state;
+  }
+
+  if (state.remainingMs <= 0 || state.chunkRemainingMs <= 0) {
+    await stopRelax();
+    return getRelaxState();
+  }
+
+  return state;
 };
