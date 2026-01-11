@@ -87,7 +87,7 @@ const Todo = ({ todos, setTodos, weekScores, setWeekScores, dailyScores, setDail
                           if (!t?.link) return;
                           try {
                             let url = String(t.link);
-                            if (url === 'yt_random') {
+                            if (url === 'fiqih_yt_random') {
                               url = await getRandomYoutubeVideoUrlFromChannel();
                             }
                             if (!url || !(url.startsWith('http://') || url.startsWith('https://'))) return;

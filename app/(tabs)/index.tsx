@@ -60,14 +60,14 @@ export default function HomeScreen() {
 
   const DEFAULT_TODOS: TodoItem[] = [
     { id: 'zikir-pagi', title: 'Zikir Pagi', link: 'https://www.instagram.com/boris.tan/', score: 10, done: false },
-    { id: 'zikir-petang', title: 'Zikir Petang', link: 'yt_random', score: 10, done: false },
+    { id: 'zikir-petang', title: 'Zikir Petang', link: 'fiqih_yt_random', score: 10, done: false },
     { id: 'duha', title: 'Shalat Dhuha', link: 'https://www.youtube.com/watch?v=YDvsBbKfLPA', score: 10, done: false },
-    { id: 'witir', title: 'Shalat Witir', link: 'https://example.com/d', score: 10, done: false },
-    { id: 'mutun', title: 'Familiar Mutun + Riyadhushhalihin: 10 menit sehari', link: 'https://example.com/e', score: 10, done: false },
-    { id: 'recite', title: 'Baca Quran 1 Juz / 30 menit', link: 'https://example.com/f', score: 10, done: false },
+    { id: 'witir', title: 'Shalat Witir', link: 'https://play.google.com/store/apps/details?id=com.ichi2.anki&hl=en', score: 10, done: false },
+    { id: 'mutun', title: 'Familiar Mutun + Riyadhushhalihin: 10 menit sehari', link: 'https://www.youtube.com/watch?v=jyeikSj0Qt4&list=PLR-wSuUv3U1z1If_ANqpdtcjyV70wmqVK&index=55', score: 10, done: false },
+    { id: 'recite', title: 'Baca Quran 1 Juz / 30 menit', link: 'https://play.google.com/store/apps/details?id=com.quran.labs.androidquran&hl=en', score: 10, done: false },
     { id: 'hsk', title: 'HSK 5', link: 'https://www.youtube.com/watch?v=vTVuuJ5xBco', score: 3, done: false },
     { id: 'speaking-english', title: 'Speaking Elsa 10 menit', link: 'https://www.youtube.com/watch?v=vOTiJkg1voo', score: 3, done: false },
-    { id: 'arab-vocab', title: '5 Arabic Vocab Amiyah', link: 'https://example.com/i', score: 4, done: false },
+    { id: 'arab-vocab', title: '5 Arabic Vocab Amiyah', link: 'https://www.youtube.com/watch?v=bNyUyrR0PHo', score: 4, done: false },
   ];
 
   const [todos, setTodos] = useState<TodoItem[]>([]);
@@ -128,7 +128,7 @@ export default function HomeScreen() {
         } catch {}
 
         const [savedTodos, savedWeek, savedDaily] = await Promise.all([
-          AsyncStorage.getItem('home.todos.v4'),
+          AsyncStorage.getItem('home.todos.v5'),
           AsyncStorage.getItem('home.weekScores.v3'),
           AsyncStorage.getItem('home.dailyScores.v3'),
         ]);
@@ -189,7 +189,7 @@ export default function HomeScreen() {
   useEffect(() => {
     const saveLocalTodos = async () => {
       try {
-        await AsyncStorage.setItem('home.todos.v4', JSON.stringify(todos));
+        await AsyncStorage.setItem('home.todos.v5', JSON.stringify(todos));
       } catch (e) {
         console.log('Failed to save todos:', e);
       }
