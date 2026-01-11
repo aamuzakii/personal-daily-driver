@@ -19,6 +19,8 @@ const { UsageStats } = NativeModules as {
     openUsageAccessSettings?: () => void;
     startBackgroundTracking?: () => void;
     stopBackgroundTracking?: () => void;
+    startChromeBlocking?: () => void;
+    stopChromeBlocking?: () => void;
   };
 };
 
@@ -77,6 +79,22 @@ export const stopBackgroundTracking = (): void => {
   }
 
   UsageStats.stopBackgroundTracking();
+};
+
+export const startChromeBlocking = (): void => {
+  if (!UsageStats || typeof UsageStats.startChromeBlocking !== 'function') {
+    throw new Error('UsageStats native module not available');
+  }
+
+  UsageStats.startChromeBlocking();
+};
+
+export const stopChromeBlocking = (): void => {
+  if (!UsageStats || typeof UsageStats.stopChromeBlocking !== 'function') {
+    throw new Error('UsageStats native module not available');
+  }
+
+  UsageStats.stopChromeBlocking();
 };
 
 export default getTwitterMinutes

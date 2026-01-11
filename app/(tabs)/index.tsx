@@ -6,9 +6,11 @@ import {
   Linking,
   PermissionsAndroid,
   Platform,
+  Pressable,
   View
 } from 'react-native';
 
+import { startChromeBlocking, stopChromeBlocking } from '@/app/usageStats';
 import ParallaxScrollView from '@/components/parallax-scroll-view';
 import Pie from '@/components/pie';
 import { ThemedText } from '@/components/themed-text';
@@ -19,6 +21,7 @@ import { HEADER_IMAGES, HEADER_QUOTES } from '@/constants/headerItems';
 import { styles } from '@/constants/styles';
 import { WeekDayKey } from '@/constants/type';
 import { getHeaderSelection } from '@/lib/headerRotation';
+import { getRelaxState, startRelax, stopRelax, tickRelax } from '@/lib/relaxMode';
 import { ensureResetMarkTable, hasResetMark, markReset, openAppDb, toYmd } from '@/lib/resetMark';
 import { fetchChannelVideoUrls } from '@/lib/youtubeApi';
 import { checkBackgroundTaskStatus, registerBackgroundTask } from '../backgroundTasks';
@@ -50,6 +53,7 @@ export default function HomeScreen() {
   const db = openAppDb();
 
   const [headerSel, setHeaderSel] = useState<{ type: 'image' | 'quote'; index: number }>({ type: 'image', index: 0 });
+  const [relaxInfo, setRelaxInfo] = useState<{ isRelaxing: boolean; remainingMs: number } | null>(null);
 
   const [twitterMinutes, setTwitterMinutes] = useState<number | null>(null);
   const [quranMinutes, setQuranMinutes] = useState<number | null>(null);
@@ -127,6 +131,12 @@ export default function HomeScreen() {
           setHeaderSel(sel);
         } catch {}
 
+        try {
+          await tickRelax();
+          const rs = await getRelaxState();
+          setRelaxInfo({ isRelaxing: rs.isRelaxing && rs.remainingMs > 0, remainingMs: rs.remainingMs });
+        } catch {}
+
         const [savedTodos, savedWeek, savedDaily] = await Promise.all([
           AsyncStorage.getItem('home.todos.v4'),
           AsyncStorage.getItem('home.weekScores.v3'),
@@ -174,6 +184,10 @@ export default function HomeScreen() {
     const sub = AppState.addEventListener('change', (state) => {
       if (state !== 'active') return;
       getHeaderSelection().then(setHeaderSel).catch(() => {});
+      tickRelax()
+        .then(getRelaxState)
+        .then((rs) => setRelaxInfo({ isRelaxing: rs.isRelaxing && rs.remainingMs > 0, remainingMs: rs.remainingMs }))
+        .catch(() => {});
     });
     return () => sub.remove();
   }, []);
@@ -380,6 +394,13 @@ export default function HomeScreen() {
       </ThemedView>
     );
 
+  const formatMmSs = (ms: number) => {
+    const s = Math.max(0, Math.floor(ms / 1000));
+    const mm = Math.floor(s / 60);
+    const ss = s % 60;
+    return `${mm}:${String(ss).padStart(2, '0')}`;
+  };
+
   return (
     <ParallaxScrollView
       headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
@@ -387,6 +408,44 @@ export default function HomeScreen() {
         headerSlide
       }>
       {/* <Button title="Reset local todo" onPress={handleResetLocal} /> */}
+      <ThemedView style={{ paddingHorizontal: 16, paddingTop: 12 }}>
+        <Pressable
+          onPress={async () => {
+            try {
+              await tickRelax();
+              const cur = await getRelaxState();
+              let next = cur;
+              if (cur.isRelaxing && cur.remainingMs > 0) {
+                next = await stopRelax();
+                try {
+                  startChromeBlocking();
+                } catch {}
+              } else {
+                next = await startRelax();
+                if (next.isRelaxing && next.remainingMs > 0) {
+                  try {
+                    stopChromeBlocking();
+                  } catch {}
+                }
+              }
+              setRelaxInfo({ isRelaxing: next.isRelaxing && next.remainingMs > 0, remainingMs: next.remainingMs });
+            } catch (e) {
+              console.log('Failed to toggle relax:', e);
+            }
+          }}
+          style={{
+            paddingHorizontal: 12,
+            paddingVertical: 10,
+            borderRadius: 12,
+            borderWidth: 1,
+            borderColor: 'rgba(127,127,127,0.25)',
+          }}
+        >
+          <ThemedText>
+            {relaxInfo?.isRelaxing ? `Relaxing (${formatMmSs(relaxInfo.remainingMs)} left)` : `Relax (1h/day) (${formatMmSs(relaxInfo?.remainingMs ?? 0)} left)`}
+          </ThemedText>
+        </Pressable>
+      </ThemedView>
       <Pie />
       {/* <Button title="Fetch YT channel videos Log" onPress={handleFetchChannelVideos} /> */}
       <Todo  todos={todos} setTodos={setTodos} weekScores={weekScores} setWeekScores={setWeekScores} dailyScores={dailyScores} setDailyScores={setDailyScores} />
