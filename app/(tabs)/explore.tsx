@@ -1,11 +1,11 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 
-import { ensureResetMarkTable, execSql, hasResetMark, markReset, openAppDb, toYmd } from '@/lib/resetMark';
+import { ensureResetMarkTable, execSql, getSqliteDbDump, hasResetMark, markReset, openAppDb, toYmd } from '@/lib/resetMark';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as FileSystem from 'expo-file-system';
 import { useEffect, useState } from 'react';
-import { AppState, Platform, Pressable, ScrollView, View } from 'react-native';
+import { AppState, Modal, Platform, Pressable, ScrollView, View } from 'react-native';
 
 import { styles } from '@/constants/styles';
 
@@ -53,6 +53,9 @@ const CHECKED_STORAGE_KEY = 'explore.checked.v1';
 export default function TabTwoScreen() {
   const [checked, setChecked] = useState<boolean[]>(() => ITEMS.map(() => false));
   const [exporting, setExporting] = useState(false);
+  const [dbDump, setDbDump] = useState<string>('');
+  const [dumpingDb, setDumpingDb] = useState(false);
+  const [dbDumpVisible, setDbDumpVisible] = useState(false);
 
   const db = openAppDb();
 
@@ -92,6 +95,21 @@ export default function TabTwoScreen() {
     } catch (e) {
       console.log('Failed to run explore reset check:', e);
       return false;
+    }
+  };
+
+  const handleShowDbDump = async () => {
+    if (dumpingDb) return;
+    setDumpingDb(true);
+    try {
+      const dump = await getSqliteDbDump(db, 2000);
+      setDbDump(dump);
+      setDbDumpVisible(true);
+    } catch (e) {
+      setDbDump(String(e));
+      setDbDumpVisible(true);
+    } finally {
+      setDumpingDb(false);
     }
   };
 
@@ -227,6 +245,26 @@ export default function TabTwoScreen() {
       style={{ flex: 1 }}
       contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 24, paddingBottom: 24 }}
     >
+      <Modal visible={dbDumpVisible} animationType="slide" onRequestClose={() => setDbDumpVisible(false)}>
+        <ThemedView style={{ flex: 1, paddingTop: 18, paddingHorizontal: 16, paddingBottom: 16 }}>
+          <ThemedView style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <ThemedText type="subtitle">SQLite Dump</ThemedText>
+            <Pressable
+              onPress={() => {
+                setDbDumpVisible(false);
+              }}
+              style={{ paddingHorizontal: 10, paddingVertical: 6 }}
+            >
+              <ThemedText>Close</ThemedText>
+            </Pressable>
+          </ThemedView>
+          <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 24 }}>
+            <ThemedText style={{ fontSize: 12, lineHeight: 16 }} selectable>
+              {dbDump || '(empty)'}
+            </ThemedText>
+          </ScrollView>
+        </ThemedView>
+      </Modal>
       <View style={{ height: 24 }} />
       <ThemedView style={{ flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 12, gap: 10 }}>
         <Pressable
@@ -242,6 +280,12 @@ export default function TabTwoScreen() {
           style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(127,127,127,0.25)' }}
         >
           <ThemedText>{exporting ? 'Exporting…' : 'Export SQL'}</ThemedText>
+        </Pressable>
+        <Pressable
+          onPress={handleShowDbDump}
+          style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(127,127,127,0.25)' }}
+        >
+          <ThemedText>{dumpingDb ? 'Loading DB…' : 'Show DB'}</ThemedText>
         </Pressable>
       </ThemedView>
       <ThemedView style={{ padding: 16, borderRadius: 16, borderWidth: 1, borderColor: 'rgba(127,127,127,0.25)' }}>

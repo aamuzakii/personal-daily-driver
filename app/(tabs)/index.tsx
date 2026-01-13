@@ -4,8 +4,11 @@ import {
   AppState,
   Image,
   Linking,
+  Modal,
   PermissionsAndroid,
   Platform,
+  Pressable,
+  ScrollView,
   View
 } from 'react-native';
 
@@ -19,7 +22,7 @@ import { HEADER_IMAGES, HEADER_QUOTES } from '@/constants/headerItems';
 import { styles } from '@/constants/styles';
 import { WeekDayKey } from '@/constants/type';
 import { getHeaderSelection } from '@/lib/headerRotation';
-import { ensureResetMarkTable, hasResetMark, markReset, openAppDb, toYmd } from '@/lib/resetMark';
+import { ensureResetMarkTable, getSqliteDbDump, hasResetMark, markReset, openAppDb, toYmd } from '@/lib/resetMark';
 import { fetchChannelVideoUrls } from '@/lib/youtubeApi';
 import { checkBackgroundTaskStatus, registerBackgroundTask } from '../backgroundTasks';
 import { getQuranMinutes, getQuranWeekBreakdown, getTwitterMinutes, openUsageAccessSettings, type QuranWeekBreakdown } from '../usageStats';
@@ -48,6 +51,10 @@ function getTodayKey(d = new Date()): WeekDayKey {
 
 export default function HomeScreen() {
   const db = openAppDb();
+
+  const [dbDump, setDbDump] = useState<string>('');
+  const [dumpingDb, setDumpingDb] = useState(false);
+  const [dbDumpVisible, setDbDumpVisible] = useState(false);
 
   const [headerSel, setHeaderSel] = useState<{ type: 'image' | 'quote'; index: number }>({ type: 'image', index: 0 });
 
@@ -101,6 +108,21 @@ export default function HomeScreen() {
     } catch (e) {
       console.log('Failed to run home todo daily reset check:', e);
       return false;
+    }
+  };
+
+  const handleShowDbDump = async () => {
+    if (dumpingDb) return;
+    setDumpingDb(true);
+    try {
+      const dump = await getSqliteDbDump(db, 200);
+      setDbDump(dump);
+      setDbDumpVisible(true);
+    } catch (e) {
+      setDbDump(String(e));
+      setDbDumpVisible(true);
+    } finally {
+      setDumpingDb(false);
     }
   };
 
@@ -387,6 +409,29 @@ export default function HomeScreen() {
         headerSlide
       }>
       {/* <Button title="Reset local todo" onPress={handleResetLocal} /> */}
+      {__DEV__ ? (
+        <ThemedView style={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: 8 }}>
+          <Modal visible={dbDumpVisible} animationType="slide" onRequestClose={() => setDbDumpVisible(false)}>
+            <ThemedView style={{ flex: 1, paddingTop: 18, paddingHorizontal: 16, paddingBottom: 16 }}>
+              <ThemedView style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <ThemedText type="subtitle">SQLite Dump</ThemedText>
+                <Pressable onPress={() => setDbDumpVisible(false)} style={{ paddingHorizontal: 10, paddingVertical: 6 }}>
+                  <ThemedText>Close</ThemedText>
+                </Pressable>
+              </ThemedView>
+              <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 24 }}>
+                <ThemedText style={{ fontSize: 12, lineHeight: 16 }} selectable>
+                  {dbDump || '(empty)'}
+                </ThemedText>
+              </ScrollView>
+            </ThemedView>
+          </Modal>
+
+          <ThemedView style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 10 }}>
+            <ThemedText onPress={handleShowDbDump}>{dumpingDb ? 'Loading DB…' : 'Show DB'}</ThemedText>
+          </ThemedView>
+        </ThemedView>
+      ) : null}
       <Pie />
       {/* <Button title="Fetch YT channel videos Log" onPress={handleFetchChannelVideos} /> */}
       <Todo  todos={todos} setTodos={setTodos} weekScores={weekScores} setWeekScores={setWeekScores} dailyScores={dailyScores} setDailyScores={setDailyScores} />
