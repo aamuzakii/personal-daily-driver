@@ -2,6 +2,8 @@ import SQLite from 'react-native-sqlite-storage';
 
 export const DEFAULT_DB_NAME = 'app.db';
 export const RESET_MARK_TABLE = 'explore_reset_mark';
+export const ZIKR_TABLE = 'zikr';
+export const GENERAL_TODO_TABLE = 'general_todo';
 
 export const logSqliteDb = async (db: any, label = 'sqlite') => {
   try {
@@ -96,4 +98,82 @@ export const hasResetMark = async (db: any, resetKey: string, table = RESET_MARK
 export const markReset = async (db: any, resetKey: string, table = RESET_MARK_TABLE) => {
   await execSql(db, `INSERT OR IGNORE INTO ${table} (reset_key) VALUES (?)`, [resetKey]);
   await logSqliteDb(db, 'resetMark.markReset');
+};
+
+export const ensureZikrTable = async (db: any, table = ZIKR_TABLE) => {
+  await execSql(db, `CREATE TABLE IF NOT EXISTS ${table} (item_idx INTEGER PRIMARY KEY NOT NULL, checked INTEGER NOT NULL)`);
+};
+
+export const loadZikrChecked = async (db: any, table = ZIKR_TABLE) => {
+  const res = await execSql(db, `SELECT item_idx, checked FROM ${table}`);
+  const map = new Map<number, boolean>();
+  for (let i = 0; i < (res?.rows?.length ?? 0); i++) {
+    const r = res.rows.item(i);
+    const idx = Number(r?.item_idx);
+    if (!Number.isFinite(idx)) continue;
+    map.set(idx, Number(r?.checked) === 1);
+  }
+  return map;
+};
+
+export const setZikrCheckedAt = async (db: any, itemIdx: number, checked: boolean, table = ZIKR_TABLE) => {
+  await execSql(
+    db,
+    `INSERT INTO ${table} (item_idx, checked) VALUES (?, ?) ON CONFLICT(item_idx) DO UPDATE SET checked=excluded.checked`,
+    [itemIdx, checked ? 1 : 0]
+  );
+};
+
+export const clearZikrChecked = async (db: any, table = ZIKR_TABLE) => {
+  await execSql(db, `DELETE FROM ${table}`);
+};
+
+export const ensureGeneralTodoTable = async (db: any, table = GENERAL_TODO_TABLE) => {
+  await execSql(
+    db,
+    `CREATE TABLE IF NOT EXISTS ${table} (
+      id TEXT PRIMARY KEY NOT NULL,
+      title TEXT NOT NULL,
+      link TEXT,
+      score INTEGER NOT NULL,
+      done INTEGER NOT NULL
+    )`
+  );
+};
+
+export const loadGeneralTodos = async (db: any, table = GENERAL_TODO_TABLE) => {
+  const res = await execSql(db, `SELECT id, title, link, score, done FROM ${table} ORDER BY rowid ASC`);
+  const rows: any[] = [];
+  for (let i = 0; i < (res?.rows?.length ?? 0); i++) rows.push(res.rows.item(i));
+  return rows.map((r) => ({
+    id: String(r?.id),
+    title: String(r?.title ?? ''),
+    link: r?.link === null || r?.link === undefined ? '' : String(r.link),
+    score: Number(r?.score ?? 0),
+    done: Number(r?.done) === 1,
+  }));
+};
+
+export const upsertGeneralTodos = async (
+  db: any,
+  todos: Array<{ id: string; title: string; link?: string; score: number; done: boolean }>,
+  table = GENERAL_TODO_TABLE
+) => {
+  for (const t of todos) {
+    await execSql(
+      db,
+      `INSERT INTO ${table} (id, title, link, score, done)
+       VALUES (?, ?, ?, ?, ?)
+       ON CONFLICT(id) DO UPDATE SET
+         title=excluded.title,
+         link=excluded.link,
+         score=excluded.score,
+         done=excluded.done`,
+      [String(t.id), String(t.title ?? ''), t.link ? String(t.link) : '', Number(t.score ?? 0), t.done ? 1 : 0]
+    );
+  }
+};
+
+export const clearGeneralTodos = async (db: any, table = GENERAL_TODO_TABLE) => {
+  await execSql(db, `DELETE FROM ${table}`);
 };

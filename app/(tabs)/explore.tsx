@@ -1,7 +1,19 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 
-import { ensureResetMarkTable, execSql, getSqliteDbDump, hasResetMark, markReset, openAppDb, toYmd } from '@/lib/resetMark';
+import {
+  clearZikrChecked,
+  ensureResetMarkTable,
+  ensureZikrTable,
+  execSql,
+  getSqliteDbDump,
+  hasResetMark,
+  loadZikrChecked,
+  markReset,
+  openAppDb,
+  setZikrCheckedAt,
+  toYmd,
+} from '@/lib/resetMark';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as FileSystem from 'expo-file-system';
 import { useEffect, useState } from 'react';
@@ -77,6 +89,12 @@ export default function TabTwoScreen() {
 
   const resetChecked = async () => {
     setChecked(ITEMS.map(() => false));
+    try {
+      await ensureZikrTable(db);
+      await clearZikrChecked(db);
+    } catch (e) {
+      console.log('Failed to clear zikr checked state (sqlite):', e);
+    }
     await AsyncStorage.removeItem(CHECKED_STORAGE_KEY).catch((e) => {
       console.log('Failed to clear explore checked state:', e);
     });
@@ -203,13 +221,9 @@ export default function TabTwoScreen() {
         const didReset = await maybeResetForCurrentPeriod();
         if (didReset) return;
 
-        const saved = await AsyncStorage.getItem(CHECKED_STORAGE_KEY);
-        if (!saved) return;
-
-        const parsed = JSON.parse(saved);
-        if (!Array.isArray(parsed)) return;
-
-        const normalized = ITEMS.map((_, idx) => !!parsed[idx]);
+        await ensureZikrTable(db);
+        const map = await loadZikrChecked(db);
+        const normalized = ITEMS.map((_, idx) => map.get(idx) ?? false);
         setChecked(normalized);
       } catch (e) {
         console.log('Failed to load explore checked state:', e);
@@ -228,16 +242,7 @@ export default function TabTwoScreen() {
   }, []);
 
   useEffect(() => {
-    const saveLocal = async () => {
-      try {
-        await AsyncStorage.setItem(CHECKED_STORAGE_KEY, JSON.stringify(checked));
-      } catch (e) {
-        console.log('Failed to save explore checked state:', e);
-      }
-    };
-
-    if (checked.length === 0) return;
-    saveLocal();
+    // no-op: sqlite writes happen per-toggle
   }, [checked]);
 
   return (
@@ -299,7 +304,14 @@ export default function TabTwoScreen() {
                   <ThemedView key={`${idx}-${title}`} style={styles.todoRow}>
                     <Pressable
                       onPress={() => {
-                        setChecked((prev) => prev.map((v, i) => (i === idx ? !v : v)));
+                        setChecked((prev) => {
+                          const next = prev.map((v, i) => (i === idx ? !v : v));
+                          const nextVal = next[idx];
+                          ensureZikrTable(db)
+                            .then(() => setZikrCheckedAt(db, idx, nextVal))
+                            .catch((e) => console.log('Failed to persist zikr tick (sqlite):', e));
+                          return next;
+                        });
                       }}
                       style={[styles.checkbox, isChecked && styles.checkboxChecked]}
                       accessibilityRole="checkbox"

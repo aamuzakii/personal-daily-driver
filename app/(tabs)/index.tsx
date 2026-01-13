@@ -22,7 +22,17 @@ import { HEADER_IMAGES, HEADER_QUOTES } from '@/constants/headerItems';
 import { styles } from '@/constants/styles';
 import { WeekDayKey } from '@/constants/type';
 import { getHeaderSelection } from '@/lib/headerRotation';
-import { ensureResetMarkTable, getSqliteDbDump, hasResetMark, markReset, openAppDb, toYmd } from '@/lib/resetMark';
+import {
+  ensureGeneralTodoTable,
+  ensureResetMarkTable,
+  getSqliteDbDump,
+  hasResetMark,
+  loadGeneralTodos,
+  markReset,
+  openAppDb,
+  toYmd,
+  upsertGeneralTodos,
+} from '@/lib/resetMark';
 import { fetchChannelVideoUrls } from '@/lib/youtubeApi';
 import { checkBackgroundTaskStatus, registerBackgroundTask } from '../backgroundTasks';
 import { getQuranMinutes, getQuranWeekBreakdown, getTwitterMinutes, openUsageAccessSettings, type QuranWeekBreakdown } from '../usageStats';
@@ -149,18 +159,16 @@ export default function HomeScreen() {
           setHeaderSel(sel);
         } catch {}
 
-        const [savedTodos, savedWeek, savedDaily] = await Promise.all([
-          AsyncStorage.getItem('home.todos.v5'),
+        const [savedWeek, savedDaily] = await Promise.all([
           AsyncStorage.getItem('home.weekScores.v3'),
           AsyncStorage.getItem('home.dailyScores.v3'),
         ]);
 
-        if (savedTodos) {
-          const parsed = JSON.parse(savedTodos);
-          const savedList: TodoItem[] = Array.isArray(parsed) ? parsed : [];
-
+        await ensureGeneralTodoTable(db);
+        const loaded = await loadGeneralTodos(db);
+        if (Array.isArray(loaded) && loaded.length > 0) {
           const defaultsById = new Map(DEFAULT_TODOS.map((t) => [t.id, t] as const));
-          const merged = savedList.map((t) => {
+          const merged = loaded.map((t) => {
             const d = defaultsById.get(t.id);
             if (!d) return t;
             return {
@@ -170,10 +178,10 @@ export default function HomeScreen() {
               score: d.score,
             };
           });
-
-          setTodos(merged);
+          setTodos(merged as any);
         } else {
           setTodos(DEFAULT_TODOS);
+          await upsertGeneralTodos(db, DEFAULT_TODOS);
         }
 
         if (savedWeek) {
@@ -209,15 +217,16 @@ export default function HomeScreen() {
   }, []);
 
   useEffect(() => {
-    const saveLocalTodos = async () => {
+    const saveSqliteTodos = async () => {
       try {
-        await AsyncStorage.setItem('home.todos.v5', JSON.stringify(todos));
+        await ensureGeneralTodoTable(db);
+        await upsertGeneralTodos(db, Array.isArray(todos) ? (todos as any) : []);
       } catch (e) {
-        console.log('Failed to save todos:', e);
+        console.log('Failed to save todos (sqlite):', e);
       }
     };
     if (todos.length === 0) return;
-    saveLocalTodos();
+    saveSqliteTodos();
   }, [todos]);
 
   useEffect(() => {
