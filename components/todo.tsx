@@ -3,8 +3,7 @@ import { WeekDayKey } from '@/constants/type';
 import { getRandomYoutubeVideoUrlFromChannel } from '@/lib/youtube';
 import { useRouter } from 'expo-router';
 import React from 'react';
-import { Linking, Platform, Pressable, TextInput } from 'react-native';
-import SendIntentAndroid from 'react-native-send-intent';
+import { Pressable, TextInput } from 'react-native';
 import { ThemedText } from './themed-text';
 import { ThemedView } from './themed-view';
 
@@ -30,36 +29,6 @@ function getTodayKey(d = new Date()): WeekDayKey {
 
 function formatDayLabel(key: WeekDayKey): string {
   return String(key).slice(0, 1).toUpperCase() + String(key).slice(1);
-}
-
-function extractAndroidPackageFromPlayStoreUrl(url: string): string | null {
-  try {
-    const u = new URL(url);
-    const id = u.searchParams.get('id');
-    if (!id) return null;
-    const pkg = String(id).trim();
-    if (!pkg) return null;
-    return pkg;
-  } catch {
-    return null;
-  }
-}
-
-async function openExternalLink(link: string) {
-  const url = String(link);
-
-  if (Platform.OS === 'android' && url.startsWith('https://play.google.com/store/apps/details')) {
-    const pkg = extractAndroidPackageFromPlayStoreUrl(url);
-    if (pkg) {
-      try {
-        const ok = await (SendIntentAndroid as any).openApp(pkg);
-        if (ok) return;
-      } catch {}
-    }
-  }
-
-  if (!url || !(url.startsWith('http://') || url.startsWith('https://'))) return;
-  await Linking.openURL(url);
 }
 
 
@@ -121,18 +90,8 @@ const Todo = ({ todos, setTodos, weekScores, setWeekScores, dailyScores, setDail
                             if (url === 'fiqih_yt_random') {
                               url = await getRandomYoutubeVideoUrlFromChannel();
                             }
-                            if (!url) return;
-
-                            if (url.startsWith('http://') || url.startsWith('https://')) {
-                              if (Platform.OS === 'android' && url.startsWith('https://play.google.com/store/apps/details')) {
-                                await openExternalLink(url);
-                                return;
-                              }
-                              router.push({ pathname: '/webview', params: { url, title: String(t.title ?? 'Web') } });
-                              return;
-                            }
-
-                            await openExternalLink(url);
+                            if (!url || !(url.startsWith('http://') || url.startsWith('https://'))) return;
+                            router.push({ pathname: '/webview', params: { url, title: String(t.title ?? 'Web') } });
                           } catch {}
                         };
                         go();
