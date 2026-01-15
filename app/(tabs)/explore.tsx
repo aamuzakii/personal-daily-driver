@@ -301,28 +301,29 @@ export default function TabTwoScreen() {
               {ITEMS.map((title, idx) => {
                 const isChecked = !!checked[idx];
                 return (
-                  <ThemedView key={`${idx}-${title}`} style={styles.todoRow}>
-                    <Pressable
-                      onPress={() => {
-                        setChecked((prev) => {
-                          const next = prev.map((v, i) => (i === idx ? !v : v));
-                          const nextVal = next[idx];
-                          ensureZikrTable(db)
-                            .then(() => setZikrCheckedAt(db, idx, nextVal))
-                            .catch((e) => console.log('Failed to persist zikr tick (sqlite):', e));
-                          return next;
-                        });
-                      }}
-                      style={[styles.checkbox, isChecked && styles.checkboxChecked]}
-                      accessibilityRole="checkbox"
-                      accessibilityState={{ checked: isChecked }}
-                    >
+                  <Pressable
+                    key={`${idx}-${title}`}
+                    onPress={() => {
+                      setChecked((prev) => {
+                        const next = prev.map((v, i) => (i === idx ? !v : v));
+                        const nextVal = next[idx];
+                        ensureZikrTable(db)
+                          .then(() => setZikrCheckedAt(db, idx, nextVal))
+                          .catch((e) => console.log('Failed to persist zikr tick (sqlite):', e));
+                        return next;
+                      });
+                    }}
+                    style={styles.todoRow}
+                    accessibilityRole="checkbox"
+                    accessibilityState={{ checked: isChecked }}
+                  >
+                    <ThemedView style={[styles.checkbox, isChecked && styles.checkboxChecked]}>
                       <ThemedText style={styles.checkboxText}>{isChecked ? '✓' : ''}</ThemedText>
-                    </Pressable>
+                    </ThemedView>
                     <ThemedView style={styles.todoTitleWrap}>
                       <ThemedText style={[styles.todoTitle, isChecked && styles.todoTitleDone]}>{title}</ThemedText>
                     </ThemedView>
-                  </ThemedView>
+                  </Pressable>
                 );
               })}
             </ThemedView>
