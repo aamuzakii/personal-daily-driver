@@ -78,13 +78,13 @@ export default function HomeScreen() {
   const DEFAULT_TODOS: TodoItem[] = [
     { id: 'zikir-pagi', title: 'Zikir Pagi', link: 'https://www.instagram.com/boris.tan/', score: 10, done: false },
     { id: 'zikir-petang', title: 'Zikir Petang', link: 'fiqih_yt_random', score: 10, done: false },
-    { id: 'duha', title: 'Shalat Dhuha', link: 'https://www.youtube.com/watch?v=YDvsBbKfLPA', score: 10, done: false },
+    { id: 'duha', title: 'Shalat Dhuha', link: '', score: 10, done: false },
     { id: 'witir', title: 'Shalat Witir', link: 'https://play.google.com/store/apps/details?id=com.ichi2.anki&hl=en', score: 10, done: false },
     { id: 'mutun', title: 'Familiar Mutun + Riyadhushhalihin: 10 menit sehari', link: 'https://www.youtube.com/watch?v=jyeikSj0Qt4&list=PLR-wSuUv3U1z1If_ANqpdtcjyV70wmqVK&index=55', score: 10, done: false },
     { id: 'recite', title: 'Baca Quran 1 Juz / 30 menit', link: 'https://play.google.com/store/apps/details?id=com.quran.labs.androidquran&hl=en', score: 10, done: false },
-    { id: 'hsk', title: 'HSK 5', link: 'https://www.youtube.com/watch?v=vTVuuJ5xBco', score: 3, done: false },
-    { id: 'speaking-english', title: 'Speaking Elsa 10 menit', link: 'https://www.youtube.com/watch?v=vOTiJkg1voo', score: 3, done: false },
-    { id: 'arab-vocab', title: '5 Arabic Vocab Amiyah', link: 'https://www.youtube.com/watch?v=bNyUyrR0PHo', score: 4, done: false },
+    { id: 'hsk', title: 'HSK 5', link: '', score: 3, done: false },
+    { id: 'speaking-english', title: 'Speaking Elsa 10 menit', link: '', score: 3, done: false },
+    { id: 'arab-vocab', title: '5 Arabic Vocab Amiyah', link: '', score: 4, done: false },
   ];
 
   const [todos, setTodos] = useState<TodoItem[]>([]);
@@ -442,6 +442,50 @@ export default function HomeScreen() {
         </ThemedView>
       ) : null}
       <Pie />
+      <ThemedText 
+        onPress={() => Linking.openURL('https://www.youtube.com/watch?v=bNyUyrR0PHo')}
+        style={{ 
+          color: '#007AFF', 
+          textDecorationLine: 'underline',
+          textAlign: 'center',
+          marginVertical: 10
+        }}
+      >
+        AR
+      </ThemedText>
+      <ThemedText 
+        onPress={() => Linking.openURL('https://www.youtube.com/watch?v=YDvsBbKfLPA')}
+        style={{ 
+          color: '#007AFF', 
+          textDecorationLine: 'underline',
+          textAlign: 'center',
+          marginVertical: 10
+        }}
+      >
+        UK
+      </ThemedText>
+      <ThemedText 
+        onPress={() => Linking.openURL('https://www.youtube.com/watch?v=vOTiJkg1voo')}
+        style={{ 
+          color: '#007AFF', 
+          textDecorationLine: 'underline',
+          textAlign: 'center',
+          marginVertical: 10
+        }}
+      >
+        AU
+      </ThemedText>
+      <ThemedText 
+        onPress={() => Linking.openURL('https://www.youtube.com/watch?v=vTVuuJ5xBco')}
+        style={{ 
+          color: '#007AFF', 
+          textDecorationLine: 'underline',
+          textAlign: 'center',
+          marginVertical: 10
+        }}
+      >
+        CN
+      </ThemedText>
       {/* <Button title="Fetch YT channel videos Log" onPress={handleFetchChannelVideos} /> */}
       <Todo  todos={todos} setTodos={setTodos} weekScores={weekScores} setWeekScores={setWeekScores} dailyScores={dailyScores} setDailyScores={setDailyScores} />
       <Wellbeing handleLoadQuranUsage={handleLoadQuranUsage} quranMinutes={quranMinutes} loadingUsage={loadingUsage} quranWeek={quranWeek} loadQuranWeek={loadQuranWeek} handleLoadUsage={handleLoadUsage} twitterMinutes={twitterMinutes} usageError={usageError} backgroundTaskStatus={backgroundTaskStatus} handleOpenSettings={handleOpenSettings} handleOpenUsageAccessSettings={handleOpenUsageAccessSettings}></Wellbeing>
