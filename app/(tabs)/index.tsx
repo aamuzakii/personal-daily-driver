@@ -154,21 +154,26 @@ export default function HomeScreen() {
 
   const [dailyScores, setDailyScores] = useState<DailyScores>({});
 
-  const maybeResetHomeTodoForToday = async () => {
+  const maybeResetHomeTodoForToday = async (currentTodos?: TodoItem[]) => {
     try {
       await ensureResetMarkTable(db);
       const resetKey = `${toYmd(new Date())}|home_todo`;
       const already = await hasResetMark(db, resetKey);
       if (already) return false;
 
+      const baseTodos = Array.isArray(currentTodos) ? currentTodos : todos;
+      if (!Array.isArray(baseTodos) || baseTodos.length === 0) return false;
+
       const todayKey = getTodayKey();
-      setTodos((prev) =>
-        Array.isArray(prev) ? prev.map((t) => ({ ...t, done: false })) : prev,
-      );
+      const nextTodos = baseTodos.map((t) => ({ ...t, done: false }));
+      setTodos(nextTodos);
       setWeekScores((prev) => ({
         ...prev,
         [todayKey]: 0,
       }));
+
+      await ensureGeneralTodoTable(db);
+      await upsertGeneralTodos(db, nextTodos as any);
       await markReset(db, resetKey);
       return true;
     } catch (e) {
@@ -222,23 +227,25 @@ export default function HomeScreen() {
 
         await ensureGeneralTodoTable(db);
         const loaded = await loadGeneralTodos(db);
-        if (Array.isArray(loaded) && loaded.length > 0) {
-          const defaultsById = new Map(
-            DEFAULT_TODOS.map((t) => [t.id, t] as const),
-          );
-          const merged = loaded.map((t) => {
-            const d = defaultsById.get(t.id);
-            if (!d) return t;
-            return {
-              ...t,
-              title: d.title,
-              link: d.link,
-              score: d.score,
-            };
-          });
-          setTodos(merged as any);
-        } else {
-          setTodos(DEFAULT_TODOS);
+        const defaultsById = new Map(
+          DEFAULT_TODOS.map((t) => [t.id, t] as const),
+        );
+        const initialTodos =
+          Array.isArray(loaded) && loaded.length > 0
+            ? (loaded.map((t) => {
+                const d = defaultsById.get(t.id);
+                if (!d) return t;
+                return {
+                  ...t,
+                  title: d.title,
+                  link: d.link,
+                  score: d.score,
+                };
+              }) as any)
+            : DEFAULT_TODOS;
+
+        setTodos(initialTodos);
+        if (!Array.isArray(loaded) || loaded.length === 0) {
           await upsertGeneralTodos(db, DEFAULT_TODOS);
         }
 
@@ -250,7 +257,7 @@ export default function HomeScreen() {
           setDailyScores(JSON.parse(savedDaily));
         }
 
-        await maybeResetHomeTodoForToday();
+        await maybeResetHomeTodoForToday(initialTodos);
       } catch (e) {
         console.log('Failed to load local todo/week data:', e);
       }
