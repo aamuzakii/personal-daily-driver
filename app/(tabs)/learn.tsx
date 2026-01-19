@@ -29,8 +29,9 @@ export default function LearnScreen() {
           style={{
             flex: 1,
             alignItems: 'center',
-            justifyContent: 'center',
+            justifyContent: 'flex-end',
             paddingHorizontal: 18,
+            paddingBottom: 14,
           }}
         >
           <ThemedText type="title" style={{ textAlign: 'center' }}>
@@ -39,7 +40,9 @@ export default function LearnScreen() {
         </ThemedView>
       }
     >
-      <ThemedView style={{ paddingHorizontal: 16, paddingTop: 12 }}>
+      <ThemedView
+        style={{ paddingHorizontal: 16, paddingTop: 0, marginTop: -28 }}
+      >
         <ThemedView
           style={{
             flexDirection: 'row',
@@ -60,14 +63,22 @@ export default function LearnScreen() {
                   borderTopLeftRadius: 10,
                   borderTopRightRadius: 10,
                   borderWidth: 1,
-                  borderColor: isActive ? 'rgba(127,127,127,0.35)' : 'rgba(127,127,127,0.25)',
+                  borderColor: isActive
+                    ? 'rgba(127,127,127,0.35)'
+                    : 'rgba(127,127,127,0.25)',
                   borderBottomWidth: isActive ? 0 : 1,
-                  backgroundColor: isActive ? 'rgba(127,127,127,0.10)' : 'rgba(127,127,127,0.04)',
+                  backgroundColor: isActive
+                    ? 'rgba(127,127,127,0.10)'
+                    : 'rgba(127,127,127,0.04)',
                   marginRight: 6,
                   zIndex: isActive ? 2 : 1,
                 }}
               >
-                <ThemedText style={{ fontSize: 13, opacity: isActive ? 1 : 0.8 }}>{t}</ThemedText>
+                <ThemedText
+                  style={{ fontSize: 13, opacity: isActive ? 1 : 0.8 }}
+                >
+                  {t}
+                </ThemedText>
               </Pressable>
             );
           })}
