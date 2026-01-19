@@ -2,6 +2,10 @@ import React, { useMemo, useState } from 'react';
 
 import { Pressable } from 'react-native';
 
+import LearnTab1 from '@/components/learn-tabs/tab-1';
+import LearnTab2 from '@/components/learn-tabs/tab-2';
+import LearnTab3 from '@/components/learn-tabs/tab-3';
+import LearnTab4 from '@/components/learn-tabs/tab-4';
 import ParallaxScrollView from '@/components/parallax-scroll-view';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -11,10 +15,10 @@ export default function LearnScreen() {
   const [active, setActive] = useState<(typeof tabs)[number]>('Tab 1');
 
   const content = useMemo(() => {
-    if (active === 'Tab 1') return 'Tab 1 content';
-    if (active === 'Tab 2') return 'Tab 2 content';
-    if (active === 'Tab 3') return 'Tab 3 content';
-    return 'Tab 4 content';
+    if (active === 'Tab 1') return <LearnTab1 />;
+    if (active === 'Tab 2') return <LearnTab2 />;
+    if (active === 'Tab 3') return <LearnTab3 />;
+    return <LearnTab4 />;
   }, [active]);
 
   return (
@@ -36,7 +40,14 @@ export default function LearnScreen() {
       }
     >
       <ThemedView style={{ paddingHorizontal: 16, paddingTop: 12 }}>
-        <ThemedView style={{ flexDirection: 'row', gap: 8 }}>
+        <ThemedView
+          style={{
+            flexDirection: 'row',
+            alignItems: 'flex-end',
+            borderBottomWidth: 1,
+            borderBottomColor: 'rgba(127,127,127,0.25)',
+          }}
+        >
           {tabs.map((t) => {
             const isActive = t === active;
             return (
@@ -44,23 +55,25 @@ export default function LearnScreen() {
                 key={t}
                 onPress={() => setActive(t)}
                 style={{
-                  paddingHorizontal: 10,
+                  paddingHorizontal: 12,
                   paddingVertical: 8,
-                  borderRadius: 10,
+                  borderTopLeftRadius: 10,
+                  borderTopRightRadius: 10,
                   borderWidth: 1,
-                  borderColor: isActive ? '#007AFF' : 'rgba(0,0,0,0.2)',
-                  backgroundColor: isActive ? 'rgba(0,122,255,0.12)' : 'transparent',
+                  borderColor: isActive ? 'rgba(127,127,127,0.35)' : 'rgba(127,127,127,0.25)',
+                  borderBottomWidth: isActive ? 0 : 1,
+                  backgroundColor: isActive ? 'rgba(127,127,127,0.10)' : 'rgba(127,127,127,0.04)',
+                  marginRight: 6,
+                  zIndex: isActive ? 2 : 1,
                 }}
               >
-                <ThemedText style={{ fontSize: 13 }}>{t}</ThemedText>
+                <ThemedText style={{ fontSize: 13, opacity: isActive ? 1 : 0.8 }}>{t}</ThemedText>
               </Pressable>
             );
           })}
         </ThemedView>
 
-        <ThemedView style={{ paddingVertical: 16 }}>
-          <ThemedText>{content}</ThemedText>
-        </ThemedView>
+        {content}
       </ThemedView>
     </ParallaxScrollView>
   );
