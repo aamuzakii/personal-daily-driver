@@ -560,82 +560,104 @@ export default function HomeScreen() {
         </ThemedView>
       ) : null}
       <Pie />
-      <ThemedText
-        onPress={() =>
-          router.push({
-            pathname: '/webview',
-            params: {
-              url: 'https://www.youtube.com/watch?v=bNyUyrR0PHo',
-              title: 'AR',
-            },
-          })
-        }
+      <ThemedView
         style={{
-          color: '#007AFF',
-          textDecorationLine: 'underline',
-          textAlign: 'center',
-          marginVertical: 10,
+          flexDirection: 'row',
+          justifyContent: 'center',
+          flexWrap: 'wrap',
+          gap: 8,
+          marginTop: 10,
+          marginBottom: 4,
         }}
       >
-        AR
-      </ThemedText>
-      <ThemedText
-        onPress={() =>
-          router.push({
-            pathname: '/webview',
-            params: {
-              url: 'https://www.youtube.com/watch?v=YDvsBbKfLPA',
-              title: 'UK',
-            },
-          })
-        }
-        style={{
-          color: '#007AFF',
-          textDecorationLine: 'underline',
-          textAlign: 'center',
-          marginVertical: 10,
-        }}
-      >
-        UK
-      </ThemedText>
-      <ThemedText
-        onPress={() =>
-          router.push({
-            pathname: '/webview',
-            params: {
-              url: 'https://www.youtube.com/watch?v=vOTiJkg1voo',
-              title: 'AU',
-            },
-          })
-        }
-        style={{
-          color: '#007AFF',
-          textDecorationLine: 'underline',
-          textAlign: 'center',
-          marginVertical: 10,
-        }}
-      >
-        AU
-      </ThemedText>
-      <ThemedText
-        onPress={() =>
-          router.push({
-            pathname: '/webview',
-            params: {
-              url: 'https://www.youtube.com/watch?v=vTVuuJ5xBco',
-              title: 'CN',
-            },
-          })
-        }
-        style={{
-          color: '#007AFF',
-          textDecorationLine: 'underline',
-          textAlign: 'center',
-          marginVertical: 10,
-        }}
-      >
-        CN
-      </ThemedText>
+        <Pressable
+          onPress={() =>
+            router.push({
+              pathname: '/webview',
+              params: {
+                url: 'https://www.youtube.com/watch?v=bNyUyrR0PHo',
+                title: 'AR',
+              },
+            })
+          }
+          style={{
+            paddingHorizontal: 10,
+            paddingVertical: 6,
+            borderRadius: 999,
+            borderWidth: 1,
+            borderColor: 'rgba(127,127,127,0.25)',
+          }}
+          accessibilityRole="button"
+        >
+          <ThemedText style={{ fontSize: 12 }}>🇸🇦 AR</ThemedText>
+        </Pressable>
+
+        <Pressable
+          onPress={() =>
+            router.push({
+              pathname: '/webview',
+              params: {
+                url: 'https://www.youtube.com/watch?v=YDvsBbKfLPA',
+                title: 'UK',
+              },
+            })
+          }
+          style={{
+            paddingHorizontal: 10,
+            paddingVertical: 6,
+            borderRadius: 999,
+            borderWidth: 1,
+            borderColor: 'rgba(127,127,127,0.25)',
+          }}
+          accessibilityRole="button"
+        >
+          <ThemedText style={{ fontSize: 12 }}>🇬🇧 UK</ThemedText>
+        </Pressable>
+
+        <Pressable
+          onPress={() =>
+            router.push({
+              pathname: '/webview',
+              params: {
+                url: 'https://www.youtube.com/watch?v=vOTiJkg1voo',
+                title: 'AU',
+              },
+            })
+          }
+          style={{
+            paddingHorizontal: 10,
+            paddingVertical: 6,
+            borderRadius: 999,
+            borderWidth: 1,
+            borderColor: 'rgba(127,127,127,0.25)',
+          }}
+          accessibilityRole="button"
+        >
+          <ThemedText style={{ fontSize: 12 }}>🇦🇺 AU</ThemedText>
+        </Pressable>
+
+        <Pressable
+          onPress={() =>
+            router.push({
+              pathname: '/webview',
+              params: {
+                url: 'https://www.youtube.com/watch?v=vTVuuJ5xBco',
+                title: 'CN',
+              },
+            })
+          }
+          style={{
+            paddingHorizontal: 10,
+            paddingVertical: 6,
+            borderRadius: 999,
+            borderWidth: 1,
+            borderColor: 'rgba(127,127,127,0.25)',
+          }}
+          accessibilityRole="button"
+        >
+          <ThemedText style={{ fontSize: 12 }}>🇨🇳 CN</ThemedText>
+        </Pressable>
+      </ThemedView>
       {/* <Button title="Fetch YT channel videos Log" onPress={handleFetchChannelVideos} /> */}
       <Todo
         todos={todos}
