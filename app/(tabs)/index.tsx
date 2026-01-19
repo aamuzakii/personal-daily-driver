@@ -12,6 +12,8 @@ import {
   View,
 } from 'react-native';
 
+import { useRouter } from 'expo-router';
+
 import ParallaxScrollView from '@/components/parallax-scroll-view';
 import Pie from '@/components/pie';
 import { ThemedText } from '@/components/themed-text';
@@ -69,6 +71,7 @@ function getTodayKey(d = new Date()): WeekDayKey {
 
 export default function HomeScreen() {
   const db = openAppDb();
+  const router = useRouter();
 
   const [dbDump, setDbDump] = useState<string>('');
   const [dumpingDb, setDumpingDb] = useState(false);
@@ -559,7 +562,13 @@ export default function HomeScreen() {
       <Pie />
       <ThemedText
         onPress={() =>
-          Linking.openURL('https://www.youtube.com/watch?v=bNyUyrR0PHo')
+          router.push({
+            pathname: '/webview',
+            params: {
+              url: 'https://www.youtube.com/watch?v=bNyUyrR0PHo',
+              title: 'AR',
+            },
+          })
         }
         style={{
           color: '#007AFF',
@@ -572,7 +581,13 @@ export default function HomeScreen() {
       </ThemedText>
       <ThemedText
         onPress={() =>
-          Linking.openURL('https://www.youtube.com/watch?v=YDvsBbKfLPA')
+          router.push({
+            pathname: '/webview',
+            params: {
+              url: 'https://www.youtube.com/watch?v=YDvsBbKfLPA',
+              title: 'UK',
+            },
+          })
         }
         style={{
           color: '#007AFF',
@@ -585,7 +600,13 @@ export default function HomeScreen() {
       </ThemedText>
       <ThemedText
         onPress={() =>
-          Linking.openURL('https://www.youtube.com/watch?v=vOTiJkg1voo')
+          router.push({
+            pathname: '/webview',
+            params: {
+              url: 'https://www.youtube.com/watch?v=vOTiJkg1voo',
+              title: 'AU',
+            },
+          })
         }
         style={{
           color: '#007AFF',
@@ -598,7 +619,13 @@ export default function HomeScreen() {
       </ThemedText>
       <ThemedText
         onPress={() =>
-          Linking.openURL('https://www.youtube.com/watch?v=vTVuuJ5xBco')
+          router.push({
+            pathname: '/webview',
+            params: {
+              url: 'https://www.youtube.com/watch?v=vTVuuJ5xBco',
+              title: 'CN',
+            },
+          })
         }
         style={{
           color: '#007AFF',
