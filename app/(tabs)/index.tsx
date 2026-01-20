@@ -24,6 +24,7 @@ import { HEADER_IMAGES, HEADER_QUOTES } from '@/constants/headerItems';
 import { styles } from '@/constants/styles';
 import { WeekDayKey } from '@/constants/type';
 import { getHeaderSelection } from '@/lib/headerRotation';
+import { openAndroidAppOrStore } from '@/lib/openAndroidApp';
 import {
   ensureGeneralTodoTable,
   ensureResetMarkTable,
@@ -663,15 +664,7 @@ export default function HomeScreen() {
       >
         <Pressable
           onPress={() => {
-            if (Platform.OS !== 'android') return;
-            const pkg = 'com.quran.labs.androidquran';
-            const androidApp = `android-app://${pkg}`;
-            const intent = `intent://#Intent;action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;launchFlags=0x10000000;package=${pkg};end`;
-
-            Linking.openURL(androidApp)
-              .catch(() => Linking.openURL(intent))
-              .catch(() => Linking.openURL(`market://details?id=${pkg}`))
-              .catch(() => {});
+            openAndroidAppOrStore('com.quran.labs.androidquran');
           }}
           style={{
             paddingHorizontal: 10,
