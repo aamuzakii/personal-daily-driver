@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useRouter } from 'expo-router';
 import { Pressable, ScrollView } from 'react-native';
 
@@ -102,8 +103,6 @@ export default function LearnTab2() {
                 alignItems: 'center',
                 gap: 6,
                 paddingVertical: 6,
-                borderBottomWidth: 1,
-                borderBottomColor: 'rgba(127,127,127,0.18)',
               }}
             >
               <Pressable
@@ -112,17 +111,17 @@ export default function LearnTab2() {
                   width: 18,
                   height: 18,
                   borderRadius: 6,
-                  borderWidth: 1,
-                  borderColor: 'rgba(127,127,127,0.28)',
                   backgroundColor: 'transparent',
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}
                 accessibilityRole="button"
               >
-                <ThemedText style={{ fontSize: 12, lineHeight: 14 }}>
-                  -
-                </ThemedText>
+                <MaterialIcons
+                  name="chevron-left"
+                  size={16}
+                  color={'rgba(127,127,127,0.9)'}
+                />
               </Pressable>
 
               <ThemedView style={{ width: 18, alignItems: 'center' }}>
@@ -137,17 +136,17 @@ export default function LearnTab2() {
                   width: 18,
                   height: 18,
                   borderRadius: 6,
-                  borderWidth: 1,
-                  borderColor: 'rgba(127,127,127,0.28)',
                   backgroundColor: 'transparent',
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}
                 accessibilityRole="button"
               >
-                <ThemedText style={{ fontSize: 12, lineHeight: 14 }}>
-                  +
-                </ThemedText>
+                <MaterialIcons
+                  name="chevron-right"
+                  size={16}
+                  color={'rgba(127,127,127,0.9)'}
+                />
               </Pressable>
 
               <Pressable
