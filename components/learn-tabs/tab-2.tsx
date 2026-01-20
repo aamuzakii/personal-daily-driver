@@ -6,7 +6,7 @@ import { Pressable, ScrollView } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 
-import blind75 from '@/app/(tabs)/blind75.json';
+import blind75 from '@/assets/json/blind75.json';
 import {
   ensureBlind75WatchTable,
   incrementBlind75WatchCount,
