@@ -665,8 +665,11 @@ export default function HomeScreen() {
           onPress={() => {
             if (Platform.OS !== 'android') return;
             const pkg = 'com.quran.labs.androidquran';
-            const intent = `intent://#Intent;action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;package=${pkg};end`;
-            Linking.openURL(intent)
+            const androidApp = `android-app://${pkg}`;
+            const intent = `intent://#Intent;action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;launchFlags=0x10000000;package=${pkg};end`;
+
+            Linking.openURL(androidApp)
+              .catch(() => Linking.openURL(intent))
               .catch(() => Linking.openURL(`market://details?id=${pkg}`))
               .catch(() => {});
           }}
