@@ -27,7 +27,7 @@ export default function LearnTab2() {
             typeof (x as Blind75Item).videoId === 'string' &&
             (x as Blind75Item).videoId.length > 0 &&
             typeof (x as Blind75Item).title === 'string' &&
-            (x as Blind75Item).title.length > 0
+            (x as Blind75Item).title.length > 0,
         ) as Blind75Item[])
       : [];
   }, []);
@@ -36,7 +36,7 @@ export default function LearnTab2() {
   const [counts, setCounts] = useState<Record<string, number>>({});
   const totalWatchCount = useMemo(
     () => Object.values(counts).reduce((a, b) => a + (Number(b) || 0), 0),
-    [counts]
+    [counts],
   );
 
   useEffect(() => {
@@ -55,15 +55,24 @@ export default function LearnTab2() {
   }, [db]);
 
   return (
-    <ThemedView style={{ paddingTop: 12, paddingBottom: 16 }}>
+    <ThemedView style={{ paddingTop: 6, paddingBottom: 8 }}>
       <ThemedView
-        style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}
+        style={{
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+        }}
       >
         <ThemedText type="subtitle">Blind 75</ThemedText>
-        <ThemedText style={{ fontSize: 12, opacity: 0.7 }}>{totalWatchCount} watches</ThemedText>
+        <ThemedText style={{ fontSize: 12, opacity: 0.7 }}>
+          {totalWatchCount} watches
+        </ThemedText>
       </ThemedView>
 
-      <ScrollView style={{ marginTop: 10 }} contentContainerStyle={{ paddingBottom: 18 }}>
+      <ScrollView
+        style={{ marginTop: 6 }}
+        contentContainerStyle={{ paddingBottom: 8 }}
+      >
         {items.map((it, idx) => {
           const label = `#${idx + 1}`;
           const url = `https://www.youtube.com/watch?v=${encodeURIComponent(it.videoId)}`;
@@ -77,7 +86,12 @@ export default function LearnTab2() {
             });
             ensureBlind75WatchTable(db)
               .then(() => incrementBlind75WatchCount(db, it.videoId, delta))
-              .catch((e) => console.log('Failed to persist blind75 watch count (sqlite):', e));
+              .catch((e) =>
+                console.log(
+                  'Failed to persist blind75 watch count (sqlite):',
+                  e,
+                ),
+              );
           };
 
           return (
@@ -86,8 +100,8 @@ export default function LearnTab2() {
               style={{
                 flexDirection: 'row',
                 alignItems: 'center',
-                gap: 10,
-                paddingVertical: 10,
+                gap: 6,
+                paddingVertical: 6,
                 borderBottomWidth: 1,
                 borderBottomColor: 'rgba(127,127,127,0.18)',
               }}
@@ -95,8 +109,8 @@ export default function LearnTab2() {
               <Pressable
                 onPress={() => bump(-1)}
                 style={{
-                  width: 26,
-                  height: 26,
+                  width: 18,
+                  height: 18,
                   borderRadius: 6,
                   borderWidth: 1,
                   borderColor: 'rgba(127,127,127,0.28)',
@@ -106,18 +120,22 @@ export default function LearnTab2() {
                 }}
                 accessibilityRole="button"
               >
-                <ThemedText style={{ fontSize: 16, lineHeight: 18 }}>-</ThemedText>
+                <ThemedText style={{ fontSize: 12, lineHeight: 14 }}>
+                  -
+                </ThemedText>
               </Pressable>
 
-              <ThemedView style={{ width: 34, alignItems: 'center' }}>
-                <ThemedText style={{ fontSize: 13, opacity: 0.85 }}>{watchCount}</ThemedText>
+              <ThemedView style={{ width: 18, alignItems: 'center' }}>
+                <ThemedText style={{ fontSize: 11, opacity: 0.85 }}>
+                  {watchCount}
+                </ThemedText>
               </ThemedView>
 
               <Pressable
                 onPress={() => bump(1)}
                 style={{
-                  width: 26,
-                  height: 26,
+                  width: 18,
+                  height: 18,
                   borderRadius: 6,
                   borderWidth: 1,
                   borderColor: 'rgba(127,127,127,0.28)',
@@ -127,7 +145,9 @@ export default function LearnTab2() {
                 }}
                 accessibilityRole="button"
               >
-                <ThemedText style={{ fontSize: 16, lineHeight: 18 }}>+</ThemedText>
+                <ThemedText style={{ fontSize: 12, lineHeight: 14 }}>
+                  +
+                </ThemedText>
               </Pressable>
 
               <Pressable
@@ -141,11 +161,8 @@ export default function LearnTab2() {
                 style={{ flex: 1 }}
                 accessibilityRole="link"
               >
-                <ThemedText style={{ fontSize: 14, textDecorationLine: 'underline' }}>
+                <ThemedText style={{ fontSize: 14 }}>
                   {label} • {it.title}
-                </ThemedText>
-                <ThemedText style={{ fontSize: 11, opacity: 0.6, marginTop: 2 }}>
-                  {it.videoId}
                 </ThemedText>
               </Pressable>
             </ThemedView>
