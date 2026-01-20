@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 
 import { useRouter } from 'expo-router';
 import { Pressable, ScrollView } from 'react-native';
@@ -7,6 +7,12 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 
 import blind75 from '@/app/(tabs)/blind75.json';
+import {
+  ensureBlind75WatchTable,
+  incrementBlind75WatchCount,
+  loadBlind75WatchCounts,
+  openAppDb,
+} from '@/lib/resetMark';
 
 type Blind75Item = { videoId: string; title: string };
 
@@ -26,8 +32,27 @@ export default function LearnTab2() {
       : [];
   }, []);
 
-  const [done, setDone] = useState<Record<string, boolean>>({});
-  const doneCount = useMemo(() => Object.values(done).filter(Boolean).length, [done]);
+  const db = useMemo(() => openAppDb(), []);
+  const [counts, setCounts] = useState<Record<string, number>>({});
+  const totalWatchCount = useMemo(
+    () => Object.values(counts).reduce((a, b) => a + (Number(b) || 0), 0),
+    [counts]
+  );
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        await ensureBlind75WatchTable(db);
+        const map = await loadBlind75WatchCounts(db);
+        const next: Record<string, number> = {};
+        for (const [k, v] of map.entries()) next[k] = v;
+        setCounts(next);
+      } catch (e) {
+        console.log('Failed to load blind75 watch counts (sqlite):', e);
+      }
+    };
+    load();
+  }, [db]);
 
   return (
     <ThemedView style={{ paddingTop: 12, paddingBottom: 16 }}>
@@ -35,16 +60,25 @@ export default function LearnTab2() {
         style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}
       >
         <ThemedText type="subtitle">Blind 75</ThemedText>
-        <ThemedText style={{ fontSize: 12, opacity: 0.7 }}>
-          {doneCount}/{items.length}
-        </ThemedText>
+        <ThemedText style={{ fontSize: 12, opacity: 0.7 }}>{totalWatchCount} watches</ThemedText>
       </ThemedView>
 
       <ScrollView style={{ marginTop: 10 }} contentContainerStyle={{ paddingBottom: 18 }}>
         {items.map((it, idx) => {
-          const checked = Boolean(done[it.videoId]);
           const label = `#${idx + 1}`;
           const url = `https://www.youtube.com/watch?v=${encodeURIComponent(it.videoId)}`;
+          const watchCount = Math.max(0, Number(counts[it.videoId] ?? 0));
+
+          const bump = (delta: number) => {
+            setCounts((p) => {
+              const cur = Math.max(0, Number(p[it.videoId] ?? 0));
+              const nextVal = Math.max(0, cur + delta);
+              return { ...p, [it.videoId]: nextVal };
+            });
+            ensureBlind75WatchTable(db)
+              .then(() => incrementBlind75WatchCount(db, it.videoId, delta))
+              .catch((e) => console.log('Failed to persist blind75 watch count (sqlite):', e));
+          };
 
           return (
             <ThemedView
@@ -59,29 +93,51 @@ export default function LearnTab2() {
               }}
             >
               <Pressable
-                onPress={() => setDone((p) => ({ ...p, [it.videoId]: !p[it.videoId] }))}
+                onPress={() => bump(-1)}
                 style={{
-                  width: 22,
-                  height: 22,
+                  width: 26,
+                  height: 26,
                   borderRadius: 6,
                   borderWidth: 1,
-                  borderColor: checked ? 'rgba(127,127,127,0.45)' : 'rgba(127,127,127,0.28)',
-                  backgroundColor: checked ? 'rgba(127,127,127,0.18)' : 'transparent',
+                  borderColor: 'rgba(127,127,127,0.28)',
+                  backgroundColor: 'transparent',
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}
                 accessibilityRole="button"
               >
-                <ThemedText style={{ fontSize: 13 }}>{checked ? '✓' : ''}</ThemedText>
+                <ThemedText style={{ fontSize: 16, lineHeight: 18 }}>-</ThemedText>
+              </Pressable>
+
+              <ThemedView style={{ width: 34, alignItems: 'center' }}>
+                <ThemedText style={{ fontSize: 13, opacity: 0.85 }}>{watchCount}</ThemedText>
+              </ThemedView>
+
+              <Pressable
+                onPress={() => bump(1)}
+                style={{
+                  width: 26,
+                  height: 26,
+                  borderRadius: 6,
+                  borderWidth: 1,
+                  borderColor: 'rgba(127,127,127,0.28)',
+                  backgroundColor: 'transparent',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+                accessibilityRole="button"
+              >
+                <ThemedText style={{ fontSize: 16, lineHeight: 18 }}>+</ThemedText>
               </Pressable>
 
               <Pressable
-                onPress={() =>
+                onPress={() => {
+                  bump(1);
                   router.push({
                     pathname: '/webview',
                     params: { url, title: `Blind75 ${label}` },
-                  })
-                }
+                  });
+                }}
                 style={{ flex: 1 }}
                 accessibilityRole="link"
               >
