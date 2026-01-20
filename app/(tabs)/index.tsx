@@ -658,6 +658,31 @@ export default function HomeScreen() {
           <ThemedText style={{ fontSize: 12 }}>🇨🇳 CN</ThemedText>
         </Pressable>
       </ThemedView>
+      <ThemedView
+        style={{ paddingHorizontal: 16, paddingTop: 6, paddingBottom: 6 }}
+      >
+        <Pressable
+          onPress={() => {
+            if (Platform.OS !== 'android') return;
+            const pkg = 'com.quran.labs.androidquran';
+            const intent = `intent://#Intent;package=${pkg};end`;
+            Linking.openURL(intent).catch(() => {
+              Linking.openURL(`market://details?id=${pkg}`).catch(() => {});
+            });
+          }}
+          style={{
+            paddingHorizontal: 10,
+            paddingVertical: 6,
+            borderRadius: 999,
+            borderWidth: 1,
+            borderColor: 'rgba(127,127,127,0.25)',
+            alignSelf: 'flex-start',
+          }}
+          accessibilityRole="button"
+        >
+          <ThemedText style={{ fontSize: 12 }}>Open Quran</ThemedText>
+        </Pressable>
+      </ThemedView>
       {/* <Button title="Fetch YT channel videos Log" onPress={handleFetchChannelVideos} /> */}
       <Todo
         todos={todos}
