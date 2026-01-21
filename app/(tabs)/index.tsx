@@ -95,7 +95,7 @@ export default function HomeScreen() {
     {
       id: 'zikir-pagi',
       title: 'Zikir Pagi',
-      link: 'https://www.instagram.com/boris.tan/',
+      link: '',
       score: 10,
       done: false,
     },
@@ -110,7 +110,7 @@ export default function HomeScreen() {
     {
       id: 'witir',
       title: 'Shalat Witir',
-      link: 'https://play.google.com/store/apps/details?id=com.ichi2.anki&hl=en',
+      link: '',
       score: 10,
       done: false,
     },
@@ -124,7 +124,7 @@ export default function HomeScreen() {
     {
       id: 'recite',
       title: 'Baca Quran 1 Juz / 30 menit',
-      link: 'https://play.google.com/store/apps/details?id=com.quran.labs.androidquran&hl=en',
+      link: 'com.quran.labs.androidquran',
       score: 10,
       done: false,
     },

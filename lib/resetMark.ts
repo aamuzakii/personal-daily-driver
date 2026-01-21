@@ -172,7 +172,7 @@ export const ensureGeneralTodoTable = async (
   table = GENERAL_TODO_TABLE,
 ) => {
   await execSql(
-    db,[]
+    db,
     `CREATE TABLE IF NOT EXISTS ${table} (
       id TEXT PRIMARY KEY NOT NULL,
       title TEXT NOT NULL,
@@ -202,13 +202,13 @@ export const loadGeneralTodos = async (db: any, table = GENERAL_TODO_TABLE) => {
 
 export const upsertGeneralTodos = async (
   db: any,
-  todos: Array<{
+  todos: {
     id: string;
     title: string;
     link?: string;
     score: number;
     done: boolean;
-  }>,
+  }[],
   table = GENERAL_TODO_TABLE,
 ) => {
   for (const t of todos) {
