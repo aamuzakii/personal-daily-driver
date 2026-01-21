@@ -132,14 +132,14 @@ export default function HomeScreen() {
     {
       id: 'speaking-english',
       title: 'Speaking Elsa 10 menit',
-      link: '',
+      link: 'com.miui.gallery',
       score: 3,
       done: false,
     },
     {
       id: 'arab-vocab',
       title: '5 Arabic Vocab Amiyah',
-      link: '',
+      link: 'com.miui.gallery',
       score: 4,
       done: false,
     },
