@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 
 import { useRouter } from 'expo-router';
 import { Pressable, ScrollView } from 'react-native';
@@ -7,6 +7,13 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 
 import riyadTab1 from '@/assets/json/riyad-tab-1.json';
+
+import {
+  ensureLearnRiyadTab1Table,
+  loadLearnRiyadTab1Done,
+  openAppDb,
+  setLearnRiyadTab1Done,
+} from '@/lib/resetMark';
 
 export default function LearnTab1() {
   const router = useRouter();
@@ -22,6 +29,27 @@ export default function LearnTab1() {
     () => Object.values(done).filter(Boolean).length,
     [done],
   );
+
+  const db = useMemo(() => openAppDb(), []);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadLocal = async () => {
+      try {
+        await ensureLearnRiyadTab1Table(db);
+        const map = await loadLearnRiyadTab1Done(db);
+        const next: Record<string, boolean> = {};
+        for (const [k, v] of map.entries()) next[k] = v;
+        if (!cancelled) setDone(next);
+      } catch (e) {
+        console.log('Failed to load learn tab-1 done state (sqlite):', e);
+      }
+    };
+    loadLocal();
+    return () => {
+      cancelled = true;
+    };
+  }, [db]);
 
   return (
     <ThemedView style={{ paddingTop: 12, paddingBottom: 16 }}>
@@ -60,7 +88,21 @@ export default function LearnTab1() {
               }}
             >
               <Pressable
-                onPress={() => setDone((p) => ({ ...p, [id]: !p[id] }))}
+                onPress={() =>
+                  setDone((p) => {
+                    const nextVal = !p[id];
+                    const next = { ...p, [id]: nextVal };
+                    ensureLearnRiyadTab1Table(db)
+                      .then(() => setLearnRiyadTab1Done(db, id, nextVal))
+                      .catch((e) =>
+                        console.log(
+                          'Failed to persist learn tab-1 tick (sqlite):',
+                          e,
+                        ),
+                      );
+                    return next;
+                  })
+                }
                 style={{
                   width: 22,
                   height: 22,

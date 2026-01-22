@@ -5,6 +5,7 @@ export const RESET_MARK_TABLE = 'explore_reset_mark';
 export const ZIKR_TABLE = 'zikr';
 export const GENERAL_TODO_TABLE = 'general_todo';
 export const BLIND75_WATCH_TABLE = 'blind75_watch';
+export const LEARN_RIYAD_TAB1_TABLE = 'learn_riyad_tab1';
 
 export const logSqliteDb = async (db: any, label = 'sqlite') => {
   try {
@@ -250,6 +251,47 @@ export const ensureBlind75WatchTable = async (
       watch_count INTEGER NOT NULL DEFAULT 0,
       updated_ms INTEGER NOT NULL DEFAULT 0
     )`,
+  );
+};
+
+export const ensureLearnRiyadTab1Table = async (
+  db: any,
+  table = LEARN_RIYAD_TAB1_TABLE,
+) => {
+  await execSql(
+    db,
+    `CREATE TABLE IF NOT EXISTS ${table} (
+      video_id TEXT PRIMARY KEY NOT NULL,
+      done INTEGER NOT NULL
+    )`,
+  );
+};
+
+export const loadLearnRiyadTab1Done = async (
+  db: any,
+  table = LEARN_RIYAD_TAB1_TABLE,
+) => {
+  const res = await execSql(db, `SELECT video_id, done FROM ${table}`);
+  const map = new Map<string, boolean>();
+  for (let i = 0; i < (res?.rows?.length ?? 0); i++) {
+    const r = res.rows.item(i);
+    const id = String(r?.video_id ?? '');
+    if (!id) continue;
+    map.set(id, Number(r?.done) === 1);
+  }
+  return map;
+};
+
+export const setLearnRiyadTab1Done = async (
+  db: any,
+  videoId: string,
+  done: boolean,
+  table = LEARN_RIYAD_TAB1_TABLE,
+) => {
+  await execSql(
+    db,
+    `INSERT INTO ${table} (video_id, done) VALUES (?, ?) ON CONFLICT(video_id) DO UPDATE SET done=excluded.done`,
+    [String(videoId), done ? 1 : 0],
   );
 };
 

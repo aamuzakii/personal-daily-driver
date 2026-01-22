@@ -24,7 +24,6 @@ import { HEADER_IMAGES, HEADER_QUOTES } from '@/constants/headerItems';
 import { styles } from '@/constants/styles';
 import { WeekDayKey } from '@/constants/type';
 import { getHeaderSelection } from '@/lib/headerRotation';
-import { openAndroidAppOrStore } from '@/lib/openAndroidApp';
 import {
   ensureGeneralTodoTable,
   ensureResetMarkTable,
@@ -657,26 +656,6 @@ export default function HomeScreen() {
           accessibilityRole="button"
         >
           <ThemedText style={{ fontSize: 12 }}>🇨🇳 CN</ThemedText>
-        </Pressable>
-      </ThemedView>
-      <ThemedView
-        style={{ paddingHorizontal: 16, paddingTop: 6, paddingBottom: 6 }}
-      >
-        <Pressable
-          onPress={() => {
-            openAndroidAppOrStore('com.quran.labs.androidquran');
-          }}
-          style={{
-            paddingHorizontal: 10,
-            paddingVertical: 6,
-            borderRadius: 999,
-            borderWidth: 1,
-            borderColor: 'rgba(127,127,127,0.25)',
-            alignSelf: 'flex-start',
-          }}
-          accessibilityRole="button"
-        >
-          <ThemedText style={{ fontSize: 12 }}>Open Quran</ThemedText>
         </Pressable>
       </ThemedView>
       {/* <Button title="Fetch YT channel videos Log" onPress={handleFetchChannelVideos} /> */}
