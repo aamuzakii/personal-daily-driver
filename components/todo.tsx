@@ -124,6 +124,17 @@ const Todo = ({
                     if (!t?.link) return;
                     try {
                       let url = String(t.link);
+                      if (url.startsWith('internal.tab.')) {
+                        const tabName = url
+                          .slice('internal.tab.'.length)
+                          .trim();
+                        if (!tabName) return;
+                        router.push({
+                          pathname: '/learn',
+                          params: { tab: tabName },
+                        });
+                        return;
+                      }
                       if (url === 'fiqih_yt_random') {
                         url = await getRandomYoutubeVideoUrlFromChannel();
                       }

@@ -1,8 +1,9 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 
 import { Pressable, ScrollView } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
+import { useLocalSearchParams } from 'expo-router';
 
 import LearnTab1 from '@/components/learn-tabs/tab-1';
 import LearnTab2 from '@/components/learn-tabs/tab-2';
@@ -15,6 +16,18 @@ import { ThemedView } from '@/components/themed-view';
 export default function LearnScreen() {
   const tabs = useMemo(() => ['Tab 1', 'Tab 2', 'Tab 3', 'Tab 4'] as const, []);
   const [active, setActive] = useState<(typeof tabs)[number]>('Tab 1');
+
+  const params = useLocalSearchParams();
+
+  useEffect(() => {
+    const raw = params?.tab;
+    const tab = Array.isArray(raw) ? raw[0] : raw;
+    if (!tab) return;
+    const next = String(tab);
+    if ((tabs as readonly string[]).includes(next)) {
+      setActive(next as (typeof tabs)[number]);
+    }
+  }, [params?.tab, tabs]);
 
   type IoniconName = keyof typeof Ionicons.glyphMap;
   const tabIcons = useMemo<IoniconName[]>(

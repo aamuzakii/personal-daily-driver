@@ -114,9 +114,16 @@ export default function HomeScreen() {
       done: false,
     },
     {
+      id: 'olahraga',
+      title: 'Olah Raga',
+      link: 'internal.tab.Tab 4',
+      score: 10,
+      done: false,
+    },
+    {
       id: 'mutun',
       title: 'Familiar Mutun + Riyadhushhalihin: 10 menit sehari',
-      link: 'https://www.youtube.com/watch?v=jyeikSj0Qt4&list=PLR-wSuUv3U1z1If_ANqpdtcjyV70wmqVK&index=55',
+      link: 'internal.tab.Tab 1',
       score: 10,
       done: false,
     },
