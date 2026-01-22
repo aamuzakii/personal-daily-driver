@@ -439,3 +439,10 @@ export const setLearnAkmilTab4Done = async (
     [k, done ? 1 : 0],
   );
 };
+
+export const clearLearnAkmilTab4Done = async (
+  db: any,
+  table = LEARN_AKMIL_TAB4_TABLE,
+) => {
+  await execSql(db, `DELETE FROM ${table}`);
+};

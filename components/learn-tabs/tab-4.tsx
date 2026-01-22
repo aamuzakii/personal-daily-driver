@@ -6,8 +6,12 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 
 import {
+  clearLearnAkmilTab4Done,
   ensureLearnAkmilTab4Table,
+  ensureResetMarkTable,
+  hasResetMark,
   loadLearnAkmilTab4Done,
+  markReset,
   openAppDb,
   setLearnAkmilTab4Done,
 } from '@/lib/resetMark';
@@ -80,11 +84,24 @@ export default function LearnTab4() {
     [done],
   );
 
+  const RESET_EVERY_X_DAYS = 2;
+
   useEffect(() => {
     let cancelled = false;
     const loadLocal = async () => {
       try {
+        const twoDayPeriodKey = `learn_tab4_2day_${Math.floor(Date.now() / (RESET_EVERY_X_DAYS * 24 * 60 * 60 * 1000))}`;
+        await ensureResetMarkTable(db);
+        const alreadyResetForPeriod = await hasResetMark(db, twoDayPeriodKey);
+
         await ensureLearnAkmilTab4Table(db);
+
+        if (!alreadyResetForPeriod) {
+          await clearLearnAkmilTab4Done(db);
+          await markReset(db, twoDayPeriodKey);
+          if (!cancelled) setDone({});
+        }
+
         const map = await loadLearnAkmilTab4Done(db);
         const next: Record<string, boolean> = {};
         for (const [k, v] of map.entries()) next[k] = v;
