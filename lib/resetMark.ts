@@ -6,6 +6,7 @@ export const ZIKR_TABLE = 'zikr';
 export const GENERAL_TODO_TABLE = 'general_todo';
 export const BLIND75_WATCH_TABLE = 'blind75_watch';
 export const LEARN_RIYAD_TAB1_TABLE = 'learn_riyad_tab1';
+export const LEARN_SURAH_TAB3_TABLE = 'learn_surah_tab3';
 
 export const logSqliteDb = async (db: any, label = 'sqlite') => {
   try {
@@ -345,5 +346,51 @@ export const incrementBlind75WatchCount = async (
        watch_count=MAX(0, ${table}.watch_count + excluded.watch_count),
        updated_ms=excluded.updated_ms`,
     [String(videoId), d, Date.now()],
+  );
+};
+
+export const ensureLearnSurahTab3Table = async (
+  db: any,
+  table = LEARN_SURAH_TAB3_TABLE,
+) => {
+  await execSql(
+    db,
+    `CREATE TABLE IF NOT EXISTS ${table} (
+      surah INTEGER PRIMARY KEY NOT NULL,
+      pressed_ms INTEGER NOT NULL
+    )`,
+  );
+};
+
+export const loadLearnSurahTab3PressedMs = async (
+  db: any,
+  table = LEARN_SURAH_TAB3_TABLE,
+) => {
+  const res = await execSql(db, `SELECT surah, pressed_ms FROM ${table}`);
+  const map = new Map<number, number>();
+  for (let i = 0; i < (res?.rows?.length ?? 0); i++) {
+    const r = res.rows.item(i);
+    const surah = Number(r?.surah);
+    const ms = Number(r?.pressed_ms);
+    if (!Number.isFinite(surah)) continue;
+    if (!Number.isFinite(ms) || ms <= 0) continue;
+    map.set(surah, ms);
+  }
+  return map;
+};
+
+export const setLearnSurahTab3PressedNow = async (
+  db: any,
+  surah: number,
+  table = LEARN_SURAH_TAB3_TABLE,
+) => {
+  const s = Number(surah);
+  if (!Number.isFinite(s)) return;
+  await execSql(
+    db,
+    `INSERT INTO ${table} (surah, pressed_ms)
+     VALUES (?, ?)
+     ON CONFLICT(surah) DO UPDATE SET pressed_ms=excluded.pressed_ms`,
+    [s, Date.now()],
   );
 };
