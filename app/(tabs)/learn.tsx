@@ -9,12 +9,16 @@ import LearnTab1 from '@/components/learn-tabs/tab-1';
 import LearnTab2 from '@/components/learn-tabs/tab-2';
 import LearnTab3 from '@/components/learn-tabs/tab-3';
 import LearnTab4 from '@/components/learn-tabs/tab-4';
+import LearnTab5 from '@/components/learn-tabs/tab-5';
 import ParallaxScrollView from '@/components/parallax-scroll-view';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 
 export default function LearnScreen() {
-  const tabs = useMemo(() => ['Tab 1', 'Tab 2', 'Tab 3', 'Tab 4'] as const, []);
+  const tabs = useMemo(
+    () => ['Tab 1', 'Tab 2', 'Tab 3', 'Tab 4', 'Tab 5'] as const,
+    [],
+  );
   const [active, setActive] = useState<(typeof tabs)[number]>('Tab 1');
 
   const params = useLocalSearchParams();
@@ -50,11 +54,68 @@ export default function LearnScreen() {
     return tabIcons[sum % tabIcons.length];
   };
 
+  const topTabs = useMemo(() => tabs.slice(0, 3), [tabs]);
+  const bottomTabs = useMemo(() => tabs.slice(3), [tabs]);
+
+  const renderTab = (t: (typeof tabs)[number]) => {
+    const isActive = t === active;
+    return (
+      <Pressable
+        key={t}
+        onPress={() => setActive(t)}
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 8,
+          paddingLeft: 10,
+          paddingRight: 8,
+          paddingVertical: 8,
+          height: 36,
+          borderTopLeftRadius: 12,
+          borderTopRightRadius: 12,
+          borderWidth: 1,
+          borderColor: isActive
+            ? 'rgba(127,127,127,0.38)'
+            : 'rgba(127,127,127,0.26)',
+          borderBottomWidth: isActive ? 0 : 1,
+          backgroundColor: isActive
+            ? 'rgba(127,127,127,0.12)'
+            : 'rgba(127,127,127,0.05)',
+          marginRight: 8,
+          zIndex: isActive ? 3 : 1,
+        }}
+      >
+        <ThemedView
+          style={{
+            width: 16,
+            height: 16,
+            borderRadius: 4,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: isActive
+              ? 'rgba(127,127,127,0.14)'
+              : 'rgba(127,127,127,0.10)',
+          }}
+        >
+          <Ionicons
+            name={pickIcon(t)}
+            size={12}
+            color={'rgba(127,127,127,0.95)'}
+          />
+        </ThemedView>
+        <ThemedText style={{ fontSize: 13, opacity: isActive ? 1 : 0.82 }}>
+          {t}
+        </ThemedText>
+      </Pressable>
+    );
+  };
+
   const content = useMemo(() => {
     if (active === 'Tab 1') return <LearnTab1 />;
     if (active === 'Tab 2') return <LearnTab2 />;
     if (active === 'Tab 3') return <LearnTab3 />;
-    return <LearnTab4 />;
+    if (active === 'Tab 4') return <LearnTab4 />;
+    return <LearnTab5 />;
   }, [active]);
 
   return (
@@ -68,7 +129,6 @@ export default function LearnScreen() {
             flex: 1,
             alignItems: 'center',
             justifyContent: 'flex-end',
-            paddingHorizontal: 18,
             paddingBottom: 14,
           }}
         >
@@ -78,9 +138,7 @@ export default function LearnScreen() {
         </ThemedView>
       }
     >
-      <ThemedView
-        style={{ paddingHorizontal: 16, paddingTop: 0, marginTop: -28 }}
-      >
+      <ThemedView style={{ paddingTop: 0, marginTop: -28 }}>
         <ThemedView
           style={{
             borderBottomWidth: 1,
@@ -93,64 +151,23 @@ export default function LearnScreen() {
             contentContainerStyle={{
               flexDirection: 'row',
               alignItems: 'flex-end',
-              paddingHorizontal: 6,
               paddingTop: 6,
             }}
           >
-            {tabs.map((t) => {
-              const isActive = t === active;
-              return (
-                <Pressable
-                  key={t}
-                  onPress={() => setActive(t)}
-                  style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    gap: 8,
-                    paddingLeft: 10,
-                    paddingRight: 8,
-                    paddingVertical: 8,
-                    height: 36,
-                    borderTopLeftRadius: 12,
-                    borderTopRightRadius: 12,
-                    borderWidth: 1,
-                    borderColor: isActive
-                      ? 'rgba(127,127,127,0.38)'
-                      : 'rgba(127,127,127,0.26)',
-                    borderBottomWidth: isActive ? 0 : 1,
-                    backgroundColor: isActive
-                      ? 'rgba(127,127,127,0.12)'
-                      : 'rgba(127,127,127,0.05)',
-                    marginRight: 8,
-                    zIndex: isActive ? 3 : 1,
-                  }}
-                >
-                  <ThemedView
-                    style={{
-                      width: 16,
-                      height: 16,
-                      borderRadius: 4,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      backgroundColor: isActive
-                        ? 'rgba(127,127,127,0.14)'
-                        : 'rgba(127,127,127,0.10)',
-                    }}
-                  >
-                    <Ionicons
-                      name={pickIcon(t)}
-                      size={12}
-                      color={'rgba(127,127,127,0.95)'}
-                    />
-                  </ThemedView>
-                  <ThemedText
-                    style={{ fontSize: 13, opacity: isActive ? 1 : 0.82 }}
-                  >
-                    {t}
-                  </ThemedText>
-                </Pressable>
-              );
-            })}
+            {topTabs.map(renderTab)}
+          </ScrollView>
+
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{
+              flexDirection: 'row',
+              alignItems: 'flex-end',
+              paddingTop: 6,
+              paddingBottom: 6,
+            }}
+          >
+            {bottomTabs.map(renderTab)}
           </ScrollView>
         </ThemedView>
 

@@ -8,6 +8,7 @@ export const BLIND75_WATCH_TABLE = 'blind75_watch';
 export const LEARN_RIYAD_TAB1_TABLE = 'learn_riyad_tab1';
 export const LEARN_SURAH_TAB3_TABLE = 'learn_surah_tab3';
 export const LEARN_AKMIL_TAB4_TABLE = 'learn_akmil_tab4';
+export const LEARN_UMDAH_TAB5_TABLE = 'learn_umdah_tab5';
 
 export const logSqliteDb = async (db: any, label = 'sqlite') => {
   try {
@@ -294,6 +295,89 @@ export const setLearnRiyadTab1Done = async (
     db,
     `INSERT INTO ${table} (video_id, done) VALUES (?, ?) ON CONFLICT(video_id) DO UPDATE SET done=excluded.done`,
     [String(videoId), done ? 1 : 0],
+  );
+};
+
+export const ensureLearnUmdahTab5Table = async (
+  db: any,
+  table = LEARN_UMDAH_TAB5_TABLE,
+) => {
+  try {
+    const info = await execSql(db, `PRAGMA table_info(${table})`);
+    const cols: string[] = [];
+    for (let i = 0; i < (info?.rows?.length ?? 0); i++) {
+      const r = info.rows.item(i);
+      const n = String(r?.name ?? '');
+      if (n) cols.push(n);
+    }
+
+    const hasOldSchema = cols.includes('video_id') || cols.includes('done');
+    const hasNewSchema = cols.includes('item_key') && cols.includes('labels');
+    if (cols.length > 0 && hasOldSchema && !hasNewSchema) {
+      await execSql(db, `DROP TABLE IF EXISTS ${table}`);
+    }
+  } catch (_e) {
+    // ignore
+  }
+
+  await execSql(
+    db,
+    `CREATE TABLE IF NOT EXISTS ${table} (
+      item_key TEXT PRIMARY KEY NOT NULL,
+      labels TEXT NOT NULL,
+      updated_ms INTEGER NOT NULL
+    )`,
+  );
+};
+
+export const loadLearnUmdahTab5Labels = async (
+  db: any,
+  table = LEARN_UMDAH_TAB5_TABLE,
+) => {
+  const res = await execSql(db, `SELECT item_key, labels FROM ${table}`);
+  const map = new Map<string, string[]>();
+  for (let i = 0; i < (res?.rows?.length ?? 0); i++) {
+    const r = res.rows.item(i);
+    const k = String(r?.item_key ?? '');
+    if (!k) continue;
+    const raw = String(r?.labels ?? '[]');
+    try {
+      const parsed: unknown = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        const labels = parsed.filter((x) => typeof x === 'string') as string[];
+        map.set(k, labels);
+      } else {
+        map.set(k, []);
+      }
+    } catch (_e) {
+      map.set(k, []);
+    }
+  }
+  return map;
+};
+
+export const setLearnUmdahTab5Labels = async (
+  db: any,
+  itemKey: string,
+  labels: string[],
+  table = LEARN_UMDAH_TAB5_TABLE,
+) => {
+  const k = String(itemKey ?? '');
+  if (!k) return;
+
+  const cleaned = (Array.isArray(labels) ? labels : [])
+    .filter((x) => typeof x === 'string')
+    .map((x) => x.trim())
+    .filter((x) => x.length > 0);
+
+  await execSql(
+    db,
+    `INSERT INTO ${table} (item_key, labels, updated_ms)
+     VALUES (?, ?, ?)
+     ON CONFLICT(item_key) DO UPDATE SET
+       labels=excluded.labels,
+       updated_ms=excluded.updated_ms`,
+    [k, JSON.stringify(cleaned), Date.now()],
   );
 };
 
