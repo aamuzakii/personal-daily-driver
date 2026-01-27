@@ -1,6 +1,8 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 
+import ExploreCounter from '@/components/explore-counter';
+
 import {
   clearZikrChecked,
   ensureResetMarkTable,
@@ -27,6 +29,8 @@ import {
 } from 'react-native';
 
 import { styles } from '@/constants/styles';
+
+const counter = ['subhanallah wa bihamdih', 'istigfar'];
 
 const ITEMS = [
   'Al Ikhlas',
@@ -71,6 +75,7 @@ export default function TabTwoScreen() {
   const [checked, setChecked] = useState<boolean[]>(() =>
     ITEMS.map(() => false),
   );
+  const [counterResetNonce, setCounterResetNonce] = useState(0);
   const [exporting, setExporting] = useState(false);
   const [dbDump, setDbDump] = useState<string>('');
   const [dumpingDb, setDumpingDb] = useState(false);
@@ -96,6 +101,7 @@ export default function TabTwoScreen() {
 
   const resetChecked = async () => {
     setChecked(ITEMS.map(() => false));
+    setCounterResetNonce((n) => n + 1);
     try {
       await ensureZikrTable(db);
       await clearZikrChecked(db);
@@ -322,53 +328,7 @@ export default function TabTwoScreen() {
         </ThemedView>
       </Modal>
       <View style={{ height: 24 }} />
-      <ThemedView
-        style={{
-          flexDirection: 'row',
-          justifyContent: 'flex-end',
-          marginBottom: 12,
-          gap: 10,
-        }}
-      >
-        <Pressable
-          onPress={() => {
-            resetChecked();
-          }}
-          style={{
-            paddingHorizontal: 12,
-            paddingVertical: 8,
-            borderRadius: 10,
-            borderWidth: 1,
-            borderColor: 'rgba(127,127,127,0.25)',
-          }}
-        >
-          <ThemedText>Clear All</ThemedText>
-        </Pressable>
-        <Pressable
-          onPress={exportSqlDump}
-          style={{
-            paddingHorizontal: 12,
-            paddingVertical: 8,
-            borderRadius: 10,
-            borderWidth: 1,
-            borderColor: 'rgba(127,127,127,0.25)',
-          }}
-        >
-          <ThemedText>{exporting ? 'Exporting…' : 'Export SQL'}</ThemedText>
-        </Pressable>
-        <Pressable
-          onPress={handleShowDbDump}
-          style={{
-            paddingHorizontal: 12,
-            paddingVertical: 8,
-            borderRadius: 10,
-            borderWidth: 1,
-            borderColor: 'rgba(127,127,127,0.25)',
-          }}
-        >
-          <ThemedText>{dumpingDb ? 'Loading DB…' : 'Show DB'}</ThemedText>
-        </Pressable>
-      </ThemedView>
+
       <ThemedView
         style={{
           padding: 16,
@@ -378,60 +338,112 @@ export default function TabTwoScreen() {
         }}
       >
         <ThemedView style={styles.titleContainer}>
-          <ThemedView style={styles.todoCard}>
-            <ThemedText type="subtitle">Todo</ThemedText>
-            <ThemedView style={styles.todoList}>
-              {ITEMS.map((title, idx) => {
-                const isChecked = !!checked[idx];
-                return (
-                  <Pressable
-                    key={`${idx}-${title}`}
-                    onPress={() => {
-                      setChecked((prev) => {
-                        const next = prev.map((v, i) => (i === idx ? !v : v));
-                        const nextVal = next[idx];
-                        ensureZikrTable(db)
-                          .then(() => setZikrCheckedAt(db, idx, nextVal))
-                          .catch((e) =>
-                            console.log(
-                              'Failed to persist zikr tick (sqlite):',
-                              e,
-                            ),
-                          );
-                        return next;
-                      });
-                    }}
-                    style={styles.todoRow}
-                    accessibilityRole="checkbox"
-                    accessibilityState={{ checked: isChecked }}
+          <ThemedText type="subtitle">Zikir</ThemedText>
+          <ThemedView style={styles.todoList}>
+            {ITEMS.map((title, idx) => {
+              const isChecked = !!checked[idx];
+              return (
+                <Pressable
+                  key={`${idx}-${title}`}
+                  onPress={() => {
+                    setChecked((prev) => {
+                      const next = prev.map((v, i) => (i === idx ? !v : v));
+                      const nextVal = next[idx];
+                      ensureZikrTable(db)
+                        .then(() => setZikrCheckedAt(db, idx, nextVal))
+                        .catch((e) =>
+                          console.log(
+                            'Failed to persist zikr tick (sqlite):',
+                            e,
+                          ),
+                        );
+                      return next;
+                    });
+                  }}
+                  style={styles.todoRow}
+                  accessibilityRole="checkbox"
+                  accessibilityState={{ checked: isChecked }}
+                >
+                  <ThemedView
+                    style={[
+                      styles.checkbox,
+                      isChecked && styles.checkboxChecked,
+                    ]}
                   >
-                    <ThemedView
+                    <ThemedText style={styles.checkboxText}>
+                      {isChecked ? '✓' : ''}
+                    </ThemedText>
+                  </ThemedView>
+                  <ThemedView style={styles.todoTitleWrap}>
+                    <ThemedText
                       style={[
-                        styles.checkbox,
-                        isChecked && styles.checkboxChecked,
+                        styles.todoTitle,
+                        isChecked && styles.todoTitleDone,
                       ]}
                     >
-                      <ThemedText style={styles.checkboxText}>
-                        {isChecked ? '✓' : ''}
-                      </ThemedText>
-                    </ThemedView>
-                    <ThemedView style={styles.todoTitleWrap}>
-                      <ThemedText
-                        style={[
-                          styles.todoTitle,
-                          isChecked && styles.todoTitleDone,
-                        ]}
-                      >
-                        {title}
-                      </ThemedText>
-                    </ThemedView>
-                  </Pressable>
-                );
-              })}
-            </ThemedView>
+                      {title}
+                    </ThemedText>
+                  </ThemedView>
+                </Pressable>
+              );
+            })}
           </ThemedView>
+          <ExploreCounter
+            db={db}
+            items={counter}
+            resetNonce={counterResetNonce}
+          />
         </ThemedView>
       </ThemedView>
     </ScrollView>
   );
 }
+
+// FOR DEBUG SQLITE
+// <ThemedView
+//   style={{
+//     flexDirection: 'row',
+//     justifyContent: 'flex-end',
+//     marginBottom: 12,
+//     gap: 10,
+//   }}
+// >
+//   <Pressable
+//     onPress={() => {
+//       resetChecked();
+//     }}
+//     style={{
+//       paddingHorizontal: 12,
+//       paddingVertical: 8,
+//       borderRadius: 10,
+//       borderWidth: 1,
+//       borderColor: 'rgba(127,127,127,0.25)',
+//     }}
+//   >
+//     <ThemedText>Clear All</ThemedText>
+//   </Pressable>
+//   <Pressable
+//     onPress={exportSqlDump}
+//     style={{
+//       paddingHorizontal: 12,
+//       paddingVertical: 8,
+//       borderRadius: 10,
+//       borderWidth: 1,
+//       borderColor: 'rgba(127,127,127,0.25)',
+//     }}
+//   >
+//     <ThemedText>{exporting ? 'Exporting…' : 'Export SQL'}</ThemedText>
+//   </Pressable>
+//   <Pressable
+//     onPress={handleShowDbDump}
+//     style={{
+//       paddingHorizontal: 12,
+//       paddingVertical: 8,
+//       borderRadius: 10,
+//       borderWidth: 1,
+//       borderColor: 'rgba(127,127,127,0.25)',
+//     }}
+//   >
+//     <ThemedText>{dumpingDb ? 'Loading DB…' : 'Show DB'}</ThemedText>
+//   </Pressable>
+// </ThemedView>
