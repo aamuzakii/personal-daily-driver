@@ -17,7 +17,14 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as FileSystem from 'expo-file-system';
 import { useEffect, useState } from 'react';
-import { AppState, Modal, Platform, Pressable, ScrollView, View } from 'react-native';
+import {
+  AppState,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  View,
+} from 'react-native';
 
 import { styles } from '@/constants/styles';
 
@@ -54,8 +61,6 @@ const ITEMS = [
   'اصبحنا على فطرة الاسلام',
   'لا اله الا الله واحده لا شريك له',
   'ilmu, rizki, amal',
-  'subhanallah wa bihamdih 100',
-  'istigfar 100',
   '2 ayat terakhir Al Baqarah',
   '⚖️',
 ];
@@ -63,7 +68,9 @@ const ITEMS = [
 const CHECKED_STORAGE_KEY = 'explore.checked.v1';
 
 export default function TabTwoScreen() {
-  const [checked, setChecked] = useState<boolean[]>(() => ITEMS.map(() => false));
+  const [checked, setChecked] = useState<boolean[]>(() =>
+    ITEMS.map(() => false),
+  );
   const [exporting, setExporting] = useState(false);
   const [dbDump, setDbDump] = useState<string>('');
   const [dumpingDb, setDumpingDb] = useState(false);
@@ -145,7 +152,7 @@ export default function TabTwoScreen() {
     try {
       const tblRes = await execSql(
         db,
-        `SELECT name, sql FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name`
+        `SELECT name, sql FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name`,
       );
       const tables: { name: string; sql: string }[] = [];
 
@@ -186,26 +193,45 @@ export default function TabTwoScreen() {
 
       const ts = new Date();
       const stamp = `${ts.getFullYear()}${String(ts.getMonth() + 1).padStart(2, '0')}${String(ts.getDate()).padStart(2, '0')}_${String(
-        ts.getHours()
-      ).padStart(2, '0')}${String(ts.getMinutes()).padStart(2, '0')}${String(ts.getSeconds()).padStart(2, '0')}`;
+        ts.getHours(),
+      ).padStart(
+        2,
+        '0',
+      )}${String(ts.getMinutes()).padStart(2, '0')}${String(ts.getSeconds()).padStart(2, '0')}`;
 
-      if (Platform.OS === 'android' && (FileSystem as any).StorageAccessFramework) {
+      if (
+        Platform.OS === 'android' &&
+        (FileSystem as any).StorageAccessFramework
+      ) {
         const SAF = (FileSystem as any).StorageAccessFramework;
-        const downloadsTreeUri = 'content://com.android.externalstorage.documents/tree/primary%3ADownload';
-        const perm = await SAF.requestDirectoryPermissionsAsync(downloadsTreeUri);
+        const downloadsTreeUri =
+          'content://com.android.externalstorage.documents/tree/primary%3ADownload';
+        const perm =
+          await SAF.requestDirectoryPermissionsAsync(downloadsTreeUri);
         if (!perm.granted) {
           console.log('SQL dump export cancelled: no directory permission');
           return;
         }
 
         const fileName = `app_dump_${stamp}.sql`;
-        const targetUri = await SAF.createFileAsync(perm.directoryUri, fileName, 'application/sql');
-        await FileSystem.writeAsStringAsync(targetUri, dump, { encoding: 'utf8' as any });
+        const targetUri = await SAF.createFileAsync(
+          perm.directoryUri,
+          fileName,
+          'application/sql',
+        );
+        await FileSystem.writeAsStringAsync(targetUri, dump, {
+          encoding: 'utf8' as any,
+        });
         console.log('SQL dump exported to Downloads:', targetUri);
       } else {
-        const dir = (FileSystem as any).documentDirectory ?? (FileSystem as any).cacheDirectory ?? '';
+        const dir =
+          (FileSystem as any).documentDirectory ??
+          (FileSystem as any).cacheDirectory ??
+          '';
         const fileUri = `${dir}app_dump_${stamp}.sql`;
-        await FileSystem.writeAsStringAsync(fileUri, dump, { encoding: 'utf8' as any });
+        await FileSystem.writeAsStringAsync(fileUri, dump, {
+          encoding: 'utf8' as any,
+        });
         console.log('SQL dump exported to:', fileUri);
       }
     } catch (e) {
@@ -248,11 +274,33 @@ export default function TabTwoScreen() {
   return (
     <ScrollView
       style={{ flex: 1 }}
-      contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 24, paddingBottom: 24 }}
+      contentContainerStyle={{
+        paddingHorizontal: 16,
+        paddingTop: 24,
+        paddingBottom: 24,
+      }}
     >
-      <Modal visible={dbDumpVisible} animationType="slide" onRequestClose={() => setDbDumpVisible(false)}>
-        <ThemedView style={{ flex: 1, paddingTop: 18, paddingHorizontal: 16, paddingBottom: 16 }}>
-          <ThemedView style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+      <Modal
+        visible={dbDumpVisible}
+        animationType="slide"
+        onRequestClose={() => setDbDumpVisible(false)}
+      >
+        <ThemedView
+          style={{
+            flex: 1,
+            paddingTop: 18,
+            paddingHorizontal: 16,
+            paddingBottom: 16,
+          }}
+        >
+          <ThemedView
+            style={{
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: 12,
+            }}
+          >
             <ThemedText type="subtitle">SQLite Dump</ThemedText>
             <Pressable
               onPress={() => {
@@ -263,7 +311,10 @@ export default function TabTwoScreen() {
               <ThemedText>Close</ThemedText>
             </Pressable>
           </ThemedView>
-          <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 24 }}>
+          <ScrollView
+            style={{ flex: 1 }}
+            contentContainerStyle={{ paddingBottom: 24 }}
+          >
             <ThemedText style={{ fontSize: 12, lineHeight: 16 }} selectable>
               {dbDump || '(empty)'}
             </ThemedText>
@@ -271,29 +322,61 @@ export default function TabTwoScreen() {
         </ThemedView>
       </Modal>
       <View style={{ height: 24 }} />
-      <ThemedView style={{ flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 12, gap: 10 }}>
+      <ThemedView
+        style={{
+          flexDirection: 'row',
+          justifyContent: 'flex-end',
+          marginBottom: 12,
+          gap: 10,
+        }}
+      >
         <Pressable
           onPress={() => {
             resetChecked();
           }}
-          style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(127,127,127,0.25)' }}
+          style={{
+            paddingHorizontal: 12,
+            paddingVertical: 8,
+            borderRadius: 10,
+            borderWidth: 1,
+            borderColor: 'rgba(127,127,127,0.25)',
+          }}
         >
           <ThemedText>Clear All</ThemedText>
         </Pressable>
         <Pressable
           onPress={exportSqlDump}
-          style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(127,127,127,0.25)' }}
+          style={{
+            paddingHorizontal: 12,
+            paddingVertical: 8,
+            borderRadius: 10,
+            borderWidth: 1,
+            borderColor: 'rgba(127,127,127,0.25)',
+          }}
         >
           <ThemedText>{exporting ? 'Exporting…' : 'Export SQL'}</ThemedText>
         </Pressable>
         <Pressable
           onPress={handleShowDbDump}
-          style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(127,127,127,0.25)' }}
+          style={{
+            paddingHorizontal: 12,
+            paddingVertical: 8,
+            borderRadius: 10,
+            borderWidth: 1,
+            borderColor: 'rgba(127,127,127,0.25)',
+          }}
         >
           <ThemedText>{dumpingDb ? 'Loading DB…' : 'Show DB'}</ThemedText>
         </Pressable>
       </ThemedView>
-      <ThemedView style={{ padding: 16, borderRadius: 16, borderWidth: 1, borderColor: 'rgba(127,127,127,0.25)' }}>
+      <ThemedView
+        style={{
+          padding: 16,
+          borderRadius: 16,
+          borderWidth: 1,
+          borderColor: 'rgba(127,127,127,0.25)',
+        }}
+      >
         <ThemedView style={styles.titleContainer}>
           <ThemedView style={styles.todoCard}>
             <ThemedText type="subtitle">Todo</ThemedText>
@@ -309,7 +392,12 @@ export default function TabTwoScreen() {
                         const nextVal = next[idx];
                         ensureZikrTable(db)
                           .then(() => setZikrCheckedAt(db, idx, nextVal))
-                          .catch((e) => console.log('Failed to persist zikr tick (sqlite):', e));
+                          .catch((e) =>
+                            console.log(
+                              'Failed to persist zikr tick (sqlite):',
+                              e,
+                            ),
+                          );
                         return next;
                       });
                     }}
@@ -317,11 +405,25 @@ export default function TabTwoScreen() {
                     accessibilityRole="checkbox"
                     accessibilityState={{ checked: isChecked }}
                   >
-                    <ThemedView style={[styles.checkbox, isChecked && styles.checkboxChecked]}>
-                      <ThemedText style={styles.checkboxText}>{isChecked ? '✓' : ''}</ThemedText>
+                    <ThemedView
+                      style={[
+                        styles.checkbox,
+                        isChecked && styles.checkboxChecked,
+                      ]}
+                    >
+                      <ThemedText style={styles.checkboxText}>
+                        {isChecked ? '✓' : ''}
+                      </ThemedText>
                     </ThemedView>
                     <ThemedView style={styles.todoTitleWrap}>
-                      <ThemedText style={[styles.todoTitle, isChecked && styles.todoTitleDone]}>{title}</ThemedText>
+                      <ThemedText
+                        style={[
+                          styles.todoTitle,
+                          isChecked && styles.todoTitleDone,
+                        ]}
+                      >
+                        {title}
+                      </ThemedText>
                     </ThemedView>
                   </Pressable>
                 );
