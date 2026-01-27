@@ -118,59 +118,46 @@ export default function LearnScreen() {
     return <LearnTab5 />;
   }, [active]);
 
+  const tabsHeader = (
+    <ThemedView
+      style={{
+        borderBottomWidth: 1,
+        borderBottomColor: 'rgba(127,127,127,0.30)',
+        paddingTop: 6,
+      }}
+    >
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{
+          flexDirection: 'row',
+          alignItems: 'flex-end',
+        }}
+      >
+        {topTabs.map(renderTab)}
+      </ScrollView>
+
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{
+          flexDirection: 'row',
+          alignItems: 'flex-end',
+          paddingBottom: 6,
+        }}
+      >
+        {bottomTabs.map(renderTab)}
+      </ScrollView>
+    </ThemedView>
+  );
+
   return (
     <ParallaxScrollView
       headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerHeight={140}
-      headerImage={
-        <ThemedView
-          style={{
-            // maxHeight: 120,
-            flex: 1,
-            alignItems: 'center',
-            justifyContent: 'flex-end',
-            paddingBottom: 14,
-          }}
-        >
-          <ThemedText type="title" style={{ textAlign: 'center' }}>
-            Learn
-          </ThemedText>
-        </ThemedView>
-      }
+      headerImage={<></>}
+      stickyHeader={tabsHeader}
     >
       <ThemedView style={{ paddingTop: 0, marginTop: -28 }}>
-        <ThemedView
-          style={{
-            borderBottomWidth: 1,
-            borderBottomColor: 'rgba(127,127,127,0.30)',
-          }}
-        >
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{
-              flexDirection: 'row',
-              alignItems: 'flex-end',
-              paddingTop: 6,
-            }}
-          >
-            {topTabs.map(renderTab)}
-          </ScrollView>
-
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{
-              flexDirection: 'row',
-              alignItems: 'flex-end',
-              paddingTop: 6,
-              paddingBottom: 6,
-            }}
-          >
-            {bottomTabs.map(renderTab)}
-          </ScrollView>
-        </ThemedView>
-
         {content}
       </ThemedView>
     </ParallaxScrollView>
