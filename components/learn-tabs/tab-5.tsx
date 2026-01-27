@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 
 import { useRouter } from 'expo-router';
-import { Modal, Pressable, ScrollView, TextInput } from 'react-native';
+import { Modal, Pressable, ScrollView } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -48,7 +48,6 @@ export default function LearnTab5() {
   const [modalVisible, setModalVisible] = useState(false);
   const [activeKey, setActiveKey] = useState('');
   const [activeTitle, setActiveTitle] = useState('');
-  const [customLabel, setCustomLabel] = useState('');
 
   const db = useMemo(() => openAppDb(), []);
 
@@ -74,9 +73,17 @@ export default function LearnTab5() {
   const openLabelModal = (itemKey: string, title: string) => {
     setActiveKey(itemKey);
     setActiveTitle(title);
-    setCustomLabel('');
     setModalVisible(true);
   };
+
+  const toYmd = (d: Date) => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
+
+  const isDateLabel = (s: string) => /^\d{4}-\d{2}-\d{2}$/.test(s);
 
   const toggleLabel = (itemKey: string, label: string) => {
     const k = String(itemKey ?? '');
@@ -98,11 +105,34 @@ export default function LearnTab5() {
     });
   };
 
-  const addCustom = () => {
-    const lbl = customLabel.trim();
-    if (!activeKey || !lbl) return;
-    toggleLabel(activeKey, lbl);
-    setCustomLabel('');
+  const setDateLabel = (daysDelta: number) => {
+    const k = String(activeKey ?? '');
+    if (!k) return;
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() + Number(daysDelta));
+    const dateLabel = toYmd(d);
+
+    setLabelsByKey((p) => {
+      const prev = Array.isArray(p[k]) ? p[k] : [];
+      const prevDate = prev.find(
+        (x) => typeof x === 'string' && isDateLabel(x),
+      );
+      const withoutDates = prev.filter(
+        (x) => !(typeof x === 'string' && isDateLabel(x)),
+      );
+
+      const next =
+        prevDate === dateLabel ? withoutDates : [...withoutDates, dateLabel];
+
+      ensureLearnUmdahTab5Table(db)
+        .then(() => setLearnUmdahTab5Labels(db, k, next))
+        .catch((e) =>
+          console.log('Failed to persist learn tab-5 labels (sqlite):', e),
+        );
+
+      return { ...p, [k]: next };
+    });
   };
 
   return (
@@ -309,38 +339,65 @@ export default function LearnTab5() {
               <ThemedText
                 style={{ fontSize: 12, opacity: 0.8, marginBottom: 6 }}
               >
-                Custom / date label
+                Date
               </ThemedText>
               <ThemedView
-                style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}
+                style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}
               >
-                <TextInput
-                  value={customLabel}
-                  onChangeText={setCustomLabel}
-                  placeholder="e.g. 2026-01-27"
-                  placeholderTextColor={'rgba(255,255,255,0.45)'}
+                <Pressable
+                  onPress={() => setDateLabel(1)}
                   style={{
-                    flex: 1,
                     paddingHorizontal: 10,
                     paddingVertical: 8,
-                    borderRadius: 10,
+                    borderRadius: 999,
                     borderWidth: 1,
                     borderColor: 'rgba(255,255,255,0.18)',
-                    color: 'white',
-                  }}
-                />
-                <Pressable
-                  onPress={addCustom}
-                  style={{
-                    paddingHorizontal: 12,
-                    paddingVertical: 8,
-                    borderRadius: 10,
-                    borderWidth: 1,
-                    borderColor: 'rgba(255,255,255,0.18)',
-                    backgroundColor: 'rgba(255,255,255,0.08)',
+                    backgroundColor: 'rgba(255,255,255,0.06)',
                   }}
                 >
-                  <ThemedText style={{ fontSize: 12 }}>Add</ThemedText>
+                  <ThemedText style={{ fontSize: 12 }}>tomorrow</ThemedText>
+                </Pressable>
+
+                <Pressable
+                  onPress={() => setDateLabel(3)}
+                  style={{
+                    paddingHorizontal: 10,
+                    paddingVertical: 8,
+                    borderRadius: 999,
+                    borderWidth: 1,
+                    borderColor: 'rgba(255,255,255,0.18)',
+                    backgroundColor: 'rgba(255,255,255,0.06)',
+                  }}
+                >
+                  <ThemedText style={{ fontSize: 12 }}>3 days later</ThemedText>
+                </Pressable>
+
+                <Pressable
+                  onPress={() => setDateLabel(7)}
+                  style={{
+                    paddingHorizontal: 10,
+                    paddingVertical: 8,
+                    borderRadius: 999,
+                    borderWidth: 1,
+                    borderColor: 'rgba(255,255,255,0.18)',
+                    backgroundColor: 'rgba(255,255,255,0.06)',
+                  }}
+                >
+                  <ThemedText style={{ fontSize: 12 }}>next week</ThemedText>
+                </Pressable>
+
+                <Pressable
+                  onPress={() => setDateLabel(30)}
+                  style={{
+                    paddingHorizontal: 10,
+                    paddingVertical: 8,
+                    borderRadius: 999,
+                    borderWidth: 1,
+                    borderColor: 'rgba(255,255,255,0.18)',
+                    backgroundColor: 'rgba(255,255,255,0.06)',
+                  }}
+                >
+                  <ThemedText style={{ fontSize: 12 }}>next month</ThemedText>
                 </Pressable>
               </ThemedView>
             </ThemedView>
