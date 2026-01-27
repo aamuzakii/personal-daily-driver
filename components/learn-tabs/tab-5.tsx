@@ -85,6 +85,65 @@ export default function LearnTab5() {
 
   const isDateLabel = (s: string) => /^\d{4}-\d{2}-\d{2}$/.test(s);
 
+  const parseYmd = (s: string) => {
+    if (!isDateLabel(s)) return null;
+    const [yy, mm, dd] = s.split('-');
+    const y = Number(yy);
+    const m = Number(mm);
+    const d = Number(dd);
+    if (!Number.isFinite(y) || !Number.isFinite(m) || !Number.isFinite(d))
+      return null;
+    const out = new Date(y, m - 1, d);
+    out.setHours(0, 0, 0, 0);
+    return out;
+  };
+
+  const getLabelChipStyle = (lbl: string) => {
+    const base = {
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 999,
+      borderWidth: 1,
+    } as const;
+
+    if (lbl === 'init')
+      return {
+        ...base,
+        borderColor: 'rgba(34,197,94,0.55)',
+        backgroundColor: 'rgba(34,197,94,0.18)',
+      };
+    if (lbl === 'familiar')
+      return {
+        ...base,
+        borderColor: 'rgba(59,130,246,0.55)',
+        backgroundColor: 'rgba(59,130,246,0.18)',
+      };
+    if (lbl === 'memorize')
+      return {
+        ...base,
+        borderColor: 'rgba(236,72,153,0.55)',
+        backgroundColor: 'rgba(236,72,153,0.18)',
+      };
+    if (lbl === 'syarh')
+      return {
+        ...base,
+        borderColor: 'rgba(234,179,8,0.60)',
+        backgroundColor: 'rgba(234,179,8,0.18)',
+      };
+    if (lbl === 'kajian')
+      return {
+        ...base,
+        borderColor: 'rgba(168,85,247,0.55)',
+        backgroundColor: 'rgba(168,85,247,0.18)',
+      };
+
+    return {
+      ...base,
+      borderColor: 'rgba(255,255,255,0.25)',
+      backgroundColor: 'rgba(255,255,255,0.08)',
+    };
+  };
+
   const toggleLabel = (itemKey: string, label: string) => {
     const k = String(itemKey ?? '');
     const lbl = String(label ?? '').trim();
@@ -159,6 +218,18 @@ export default function LearnTab5() {
           const title = it.title || id;
           const itemKey = `${id}::${title}`;
           const labels = labelsByKey[itemKey] ?? [];
+          const dateLabel = labels.find(
+            (x) => typeof x === 'string' && isDateLabel(x),
+          );
+          if (dateLabel) {
+            const date = parseYmd(dateLabel);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            if (date && date.getTime() < today.getTime()) return null;
+          }
+          const visibleLabels = labels.filter(
+            (x) => typeof x === 'string' && x.length > 0 && !isDateLabel(x),
+          );
           const url = `https://www.youtube.com/watch?v=${encodeURIComponent(id)}`;
 
           return (
@@ -216,12 +287,21 @@ export default function LearnTab5() {
                 >
                   {title}
                 </ThemedText>
-                {labels.length > 0 ? (
-                  <ThemedText
-                    style={{ fontSize: 12, opacity: 0.7, marginTop: 4 }}
+                {visibleLabels.length > 0 ? (
+                  <ThemedView
+                    style={{
+                      marginTop: 6,
+                      flexDirection: 'row',
+                      flexWrap: 'wrap',
+                      gap: 8,
+                    }}
                   >
-                    {labels.join(' • ')}
-                  </ThemedText>
+                    {visibleLabels.map((lbl) => (
+                      <ThemedView key={lbl} style={getLabelChipStyle(lbl)}>
+                        <ThemedText style={{ fontSize: 11 }}>{lbl}</ThemedText>
+                      </ThemedView>
+                    ))}
+                  </ThemedView>
                 ) : null}
               </Pressable>
             </ThemedView>
