@@ -62,4 +62,31 @@ export const DISH_SVGS = [
   <path d="M22 38h20" stroke="rgba(0,0,0,0.14)" stroke-width="3" stroke-linecap="round"/>
 </svg>`.trim(),
   },
+  {
+    key: 'shrimp',
+    color: 'rgba(251,113,133,0.95)',
+    xml: `
+<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+  <path d="M44 18c-10 0-18 8-18 18 0 8 5 14 12 17" fill="none" stroke="currentColor" stroke-width="8" stroke-linecap="round"/>
+  <path d="M40 52c-8 0-14-6-14-14" fill="none" stroke="rgba(0,0,0,0.18)" stroke-width="3" stroke-linecap="round"/>
+  <path d="M34 22c2-2 6-4 10-4" fill="none" stroke="rgba(255,255,255,0.45)" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="46" cy="24" r="2" fill="rgba(0,0,0,0.35)"/>
+  <path d="M22 40c2 0 4 2 4 4" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+  <path d="M20 46c2 0 4 2 4 4" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+  <path d="M26 34c2 0 4 2 4 4" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+</svg>`.trim(),
+  },
+  {
+    key: 'tuna',
+    color: 'rgba(59,130,246,0.95)',
+    xml: `
+<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+  <path d="M10 32c7-10 18-16 30-16 8 0 14 3 16 8-2 5-8 8-16 8-12 0-21 4-28 12 7 8 16 12 28 12 8 0 14 3 16 8-2 5-8 8-16 8-12 0-23-6-30-16z" fill="currentColor"/>
+  <path d="M44 21l7-4 3 7-6 4" fill="rgba(255,255,255,0.25)"/>
+  <path d="M44 43l7 4 3-7-6-4" fill="rgba(255,255,255,0.25)"/>
+  <circle cx="38" cy="30" r="3" fill="rgba(255,255,255,0.85)"/>
+  <circle cx="39" cy="29" r="1" fill="rgba(0,0,0,0.35)"/>
+  <path d="M22 32h10" stroke="rgba(0,0,0,0.18)" stroke-width="3" stroke-linecap="round"/>
+</svg>`.trim(),
+  },
 ] as const;

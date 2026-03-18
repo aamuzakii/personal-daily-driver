@@ -1,26 +1,60 @@
 import React from 'react';
 
-import { Animated, Easing, Pressable, View } from 'react-native';
-
-import { SvgXml } from 'react-native-svg';
+import { Animated, Easing, Image, Pressable, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 
-import { DISH_SVGS } from '@/components/learn-tabs/dish-svgs';
-
 export default function LearnTab6() {
   const DISHES = React.useMemo(
     () =>
-      DISH_SVGS.map((d) => ({
-        ...d,
-        xmlTinted: d.xml.replace(/currentColor/g, d.color),
-      })),
-    [DISH_SVGS],
+      [
+        {
+          key: 'egg',
+          source: require('../../assets/dish/egg.png'),
+        },
+        {
+          key: 'rice',
+          source: require('../../assets/dish/rice.png'),
+        },
+        {
+          key: 'fish',
+          source: require('../../assets/dish/fish.png'),
+        },
+        {
+          key: 'hot_soup',
+          source: require('../../assets/dish/hot-soup.png'),
+        },
+        {
+          key: 'fried_egg',
+          source: require('../../assets/dish/fried-egg.png'),
+        },
+        {
+          key: 'eggplant',
+          source: require('../../assets/dish/eggplant.png'),
+        },
+        {
+          key: 'fried_chicken',
+          source: require('../../assets/dish/fried-chicken.png'),
+        },
+        {
+          key: 'chicken_wings',
+          source: require('../../assets/dish/chicken-wings.png'),
+        },
+        {
+          key: 'shrimp',
+          source: require('../../assets/dish/shrimp.png'),
+        },
+        {
+          key: 'food',
+          source: require('../../assets/dish/food.png'),
+        },
+      ] as const,
+    [],
   );
 
   const [dishKey, setDishKey] =
-    React.useState<(typeof DISHES)[number]['key']>('telor_goreng');
+    React.useState<(typeof DISHES)[number]['key']>('egg');
   const selectedDish = React.useMemo(
     () => DISHES.find((d) => d.key === dishKey) ?? DISHES[0],
     [DISHES, dishKey],
@@ -269,6 +303,8 @@ export default function LearnTab6() {
     ],
   } as const;
 
+  const progressingMode = running;
+
   return (
     <ThemedView style={{ paddingTop: 12, paddingBottom: 16 }}>
       <ThemedView
@@ -307,45 +343,55 @@ export default function LearnTab6() {
                 backgroundColor: 'rgba(127,127,127,0.08)',
               }}
             >
-              <SvgXml xml={selectedDish.xmlTinted} width={34} height={34} />
+              <Image
+                source={selectedDish.source}
+                style={{ width: 34, height: 34 }}
+                resizeMode="contain"
+              />
             </ThemedView>
           </Animated.View>
         </ThemedView>
 
-        <ThemedView style={{ marginTop: 12 }}>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
-            {DISHES.map((d) => {
-              const selected = d.key === dishKey;
-              return (
-                <Pressable
-                  key={d.key}
-                  onPress={() => setDishKey(d.key)}
-                  style={({ pressed }) => ({
-                    width: 46,
-                    height: 46,
-                    borderRadius: 16,
-                    borderWidth: 1,
-                    borderColor: selected
-                      ? 'rgba(236,72,153,0.55)'
-                      : 'rgba(127,127,127,0.22)',
-                    backgroundColor: pressed
-                      ? selected
-                        ? 'rgba(236,72,153,0.22)'
-                        : 'rgba(127,127,127,0.12)'
-                      : selected
-                        ? 'rgba(236,72,153,0.12)'
-                        : 'rgba(127,127,127,0.06)',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  })}
-                  accessibilityRole="button"
-                >
-                  <SvgXml xml={d.xmlTinted} width={28} height={28} />
-                </Pressable>
-              );
-            })}
-          </View>
-        </ThemedView>
+        {!progressingMode ? (
+          <ThemedView style={{ marginTop: 12 }}>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+              {DISHES.map((d) => {
+                const selected = d.key === dishKey;
+                return (
+                  <Pressable
+                    key={d.key}
+                    onPress={() => setDishKey(d.key)}
+                    style={({ pressed }) => ({
+                      width: 46,
+                      height: 46,
+                      borderRadius: 16,
+                      borderWidth: 1,
+                      borderColor: selected
+                        ? 'rgba(236,72,153,0.55)'
+                        : 'rgba(127,127,127,0.22)',
+                      backgroundColor: pressed
+                        ? selected
+                          ? 'rgba(236,72,153,0.22)'
+                          : 'rgba(127,127,127,0.12)'
+                        : selected
+                          ? 'rgba(236,72,153,0.12)'
+                          : 'rgba(127,127,127,0.06)',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    })}
+                    accessibilityRole="button"
+                  >
+                    <Image
+                      source={d.source}
+                      style={{ width: 28, height: 28 }}
+                      resizeMode="contain"
+                    />
+                  </Pressable>
+                );
+              })}
+            </View>
+          </ThemedView>
+        ) : null}
 
         <ThemedView style={{ marginTop: 14 }}>
           <ThemedView
@@ -391,87 +437,99 @@ export default function LearnTab6() {
           </ThemedText>
         </ThemedView>
 
-        <ThemedView style={{ marginTop: 14, flexDirection: 'row', gap: 10 }}>
-          <Pressable
-            onPress={running ? pause : start}
-            style={({ pressed }) => ({
-              flex: 1,
-              paddingVertical: 16,
-              borderRadius: 14,
-              borderWidth: 1,
-              borderColor: running
-                ? 'rgba(234,179,8,0.55)'
-                : 'rgba(34,197,94,0.55)',
-              backgroundColor: pressed
-                ? running
-                  ? 'rgba(234,179,8,0.22)'
-                  : 'rgba(34,197,94,0.22)'
-                : running
-                  ? 'rgba(234,179,8,0.14)'
-                  : 'rgba(34,197,94,0.14)',
-              alignItems: 'center',
-            })}
-            accessibilityRole="button"
-          >
-            <ThemedText style={{ fontSize: 16 }}>
-              {running ? 'Pause' : remainingMs <= 0 ? 'Start Again' : 'Start'}
-            </ThemedText>
-          </Pressable>
+        {true ? (
+          <>
+            <ThemedView
+              style={{ marginTop: 14, flexDirection: 'row', gap: 10 }}
+            >
+              <Pressable
+                onPress={running ? pause : start}
+                style={({ pressed }) => ({
+                  flex: 1,
+                  paddingVertical: 16,
+                  borderRadius: 14,
+                  borderWidth: 1,
+                  borderColor: running
+                    ? 'rgba(234,179,8,0.55)'
+                    : 'rgba(34,197,94,0.55)',
+                  backgroundColor: pressed
+                    ? running
+                      ? 'rgba(234,179,8,0.22)'
+                      : 'rgba(34,197,94,0.22)'
+                    : running
+                      ? 'rgba(234,179,8,0.14)'
+                      : 'rgba(34,197,94,0.14)',
+                  alignItems: 'center',
+                })}
+                accessibilityRole="button"
+              >
+                <ThemedText style={{ fontSize: 16 }}>
+                  {running
+                    ? 'Pause'
+                    : remainingMs <= 0
+                      ? 'Start Again'
+                      : 'Start'}
+                </ThemedText>
+              </Pressable>
 
-          <Pressable
-            onPress={reset}
-            style={({ pressed }) => ({
-              width: 112,
-              paddingVertical: 16,
-              borderRadius: 14,
-              borderWidth: 1,
-              borderColor: 'rgba(127,127,127,0.30)',
-              backgroundColor: pressed
-                ? 'rgba(127,127,127,0.16)'
-                : 'rgba(127,127,127,0.10)',
-              alignItems: 'center',
-            })}
-            accessibilityRole="button"
-          >
-            <ThemedText style={{ fontSize: 16 }}>Reset</ThemedText>
-          </Pressable>
-        </ThemedView>
+              <Pressable
+                onPress={reset}
+                style={({ pressed }) => ({
+                  width: 112,
+                  paddingVertical: 16,
+                  borderRadius: 14,
+                  borderWidth: 1,
+                  borderColor: 'rgba(127,127,127,0.30)',
+                  backgroundColor: pressed
+                    ? 'rgba(127,127,127,0.16)'
+                    : 'rgba(127,127,127,0.10)',
+                  alignItems: 'center',
+                })}
+                accessibilityRole="button"
+              >
+                <ThemedText style={{ fontSize: 16 }}>Reset</ThemedText>
+              </Pressable>
+            </ThemedView>
 
-        <ThemedView style={{ marginTop: 14 }}>
-          <ThemedText style={{ fontSize: 12, opacity: 0.75, marginBottom: 8 }}>
-            Pick a duration
-          </ThemedText>
-          <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap' }}>
-            {PRESETS_MIN.map((m) => {
-              const selected = m === durationMin;
-              return (
-                <Pressable
-                  key={m}
-                  onPress={() => setDurationMin(m)}
-                  style={({ pressed }) => ({
-                    paddingHorizontal: 12,
-                    paddingVertical: 12,
-                    borderRadius: 999,
-                    borderWidth: 1,
-                    borderColor: selected
-                      ? 'rgba(59,130,246,0.55)'
-                      : 'rgba(127,127,127,0.28)',
-                    backgroundColor: pressed
-                      ? selected
-                        ? 'rgba(59,130,246,0.22)'
-                        : 'rgba(127,127,127,0.14)'
-                      : selected
-                        ? 'rgba(59,130,246,0.14)'
-                        : 'rgba(127,127,127,0.08)',
-                  })}
-                  accessibilityRole="button"
-                >
-                  <ThemedText style={{ fontSize: 13 }}>{m} min</ThemedText>
-                </Pressable>
-              );
-            })}
-          </View>
-        </ThemedView>
+            <ThemedView style={{ marginTop: 14 }}>
+              <ThemedText
+                style={{ fontSize: 12, opacity: 0.75, marginBottom: 8 }}
+              >
+                Pick a duration
+              </ThemedText>
+              <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap' }}>
+                {PRESETS_MIN.map((m) => {
+                  const selected = m === durationMin;
+                  return (
+                    <Pressable
+                      key={m}
+                      onPress={() => setDurationMin(m)}
+                      style={({ pressed }) => ({
+                        paddingHorizontal: 12,
+                        paddingVertical: 12,
+                        borderRadius: 999,
+                        borderWidth: 1,
+                        borderColor: selected
+                          ? 'rgba(59,130,246,0.55)'
+                          : 'rgba(127,127,127,0.28)',
+                        backgroundColor: pressed
+                          ? selected
+                            ? 'rgba(59,130,246,0.22)'
+                            : 'rgba(127,127,127,0.14)'
+                          : selected
+                            ? 'rgba(59,130,246,0.14)'
+                            : 'rgba(127,127,127,0.08)',
+                      })}
+                      accessibilityRole="button"
+                    >
+                      <ThemedText style={{ fontSize: 13 }}>{m} min</ThemedText>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </ThemedView>
+          </>
+        ) : null}
       </ThemedView>
     </ThemedView>
   );
