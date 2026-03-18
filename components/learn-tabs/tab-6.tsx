@@ -40,7 +40,9 @@ export default function LearnTab6() {
   const tickIdRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
 
   const cheerSoundsRef = React.useRef<any[]>([]);
+  const timeUpSoundRef = React.useRef<any>(null);
   const lastCheerIndexRef = React.useRef<number>(0);
+  const timeUpPlayedRef = React.useRef<boolean>(false);
 
   const progress = React.useRef(new Animated.Value(0)).current;
   const wiggle = React.useRef(new Animated.Value(0)).current;
@@ -88,14 +90,23 @@ export default function LearnTab6() {
           loadedSounds.push(sound);
         }
 
+        const { sound: timeUpSound } = await Audio.Sound.createAsync(
+          require('../../audio/time-up.mp3'),
+          {
+            shouldPlay: false,
+          },
+        );
+
         if (!mounted) {
           for (const s of loadedSounds) {
             await s.unloadAsync();
           }
+          await timeUpSound.unloadAsync();
           return;
         }
 
         cheerSoundsRef.current = loadedSounds;
+        timeUpSoundRef.current = timeUpSound;
       } catch {
         // ignore
       }
@@ -108,6 +119,10 @@ export default function LearnTab6() {
       for (const s of sounds) {
         if (s) void s.unloadAsync();
       }
+
+      const t = timeUpSoundRef.current;
+      timeUpSoundRef.current = null;
+      if (t) void t.unloadAsync();
     };
   }, []);
 
@@ -115,6 +130,16 @@ export default function LearnTab6() {
     const sounds = cheerSoundsRef.current;
     if (!sounds.length) return;
     const s = sounds[Math.floor(Math.random() * sounds.length)];
+    if (!s) return;
+    try {
+      await s.replayAsync();
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  const playTimeUp = React.useCallback(async () => {
+    const s = timeUpSoundRef.current;
     if (!s) return;
     try {
       await s.replayAsync();
@@ -135,6 +160,7 @@ export default function LearnTab6() {
     startMsRef.current = null;
     endMsRef.current = null;
     lastCheerIndexRef.current = 0;
+    timeUpPlayedRef.current = false;
     setRunning(false);
     setRemainingMs(durationMs);
     progress.stopAnimation();
@@ -166,7 +192,7 @@ export default function LearnTab6() {
     setRemainingMs(remain);
 
     const elapsed = Math.max(0, now - start);
-    const cheerEveryMs = 0.1 * 60_000;
+    const cheerEveryMs = 0.7 * 60_000;
     const cheerIndex = Math.floor(elapsed / cheerEveryMs);
     if (cheerIndex > 0 && cheerIndex > lastCheerIndexRef.current) {
       lastCheerIndexRef.current = cheerIndex;
@@ -179,8 +205,12 @@ export default function LearnTab6() {
     if (remain <= 0) {
       stopTick();
       setRunning(false);
+      if (!timeUpPlayedRef.current) {
+        timeUpPlayedRef.current = true;
+        void playTimeUp();
+      }
     }
-  }, [durationMs, playCheer, progress, stopTick]);
+  }, [durationMs, playCheer, playTimeUp, progress, stopTick]);
 
   const start = React.useCallback(() => {
     if (running) return;
@@ -202,9 +232,13 @@ export default function LearnTab6() {
         stopTick();
         setRunning(false);
         setRemainingMs(0);
+        if (!timeUpPlayedRef.current) {
+          timeUpPlayedRef.current = true;
+          void playTimeUp();
+        }
       }
     });
-  }, [durationMs, remainingMs, running, progress, stopTick, tick]);
+  }, [durationMs, playTimeUp, remainingMs, running, progress, stopTick, tick]);
 
   const pause = React.useCallback(() => {
     if (!running) return;
