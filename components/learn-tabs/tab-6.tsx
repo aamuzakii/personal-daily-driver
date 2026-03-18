@@ -2,6 +2,8 @@ import React from 'react';
 
 import { Animated, Easing, Image, Pressable, View } from 'react-native';
 
+import Svg, { Path } from 'react-native-svg';
+
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 
@@ -80,6 +82,7 @@ export default function LearnTab6() {
 
   const progress = React.useRef(new Animated.Value(0)).current;
   const wiggle = React.useRef(new Animated.Value(0)).current;
+  const wave = React.useRef(new Animated.Value(0)).current;
 
   React.useEffect(() => {
     Animated.loop(
@@ -99,6 +102,27 @@ export default function LearnTab6() {
       ]),
     ).start();
   }, [wiggle]);
+
+  React.useEffect(() => {
+    const anim = Animated.loop(
+      Animated.sequence([
+        Animated.timing(wave, {
+          toValue: 1,
+          duration: 800,
+          easing: Easing.inOut(Easing.quad),
+          useNativeDriver: true,
+        }),
+        Animated.timing(wave, {
+          toValue: 0,
+          duration: 800,
+          easing: Easing.inOut(Easing.quad),
+          useNativeDriver: true,
+        }),
+      ]),
+    );
+    anim.start();
+    return () => anim.stop();
+  }, [wave]);
 
   React.useEffect(() => {
     let mounted = true;
@@ -292,6 +316,17 @@ export default function LearnTab6() {
     extrapolate: 'clamp',
   });
 
+  const waveWidth = 120;
+  const waveTiles = React.useMemo(
+    () => Math.max(2, Math.ceil((barWidth || 0) / waveWidth) + 2),
+    [barWidth],
+  );
+
+  const waveTranslateY = wave.interpolate({
+    inputRange: [0, 1],
+    outputRange: [2.5, -2.5],
+  });
+
   const mascotStyle = {
     transform: [
       {
@@ -411,11 +446,50 @@ export default function LearnTab6() {
               style={{
                 height: '100%',
                 width: fillW,
-                backgroundColor: running
-                  ? 'rgba(34,197,94,0.55)'
-                  : 'rgba(59,130,246,0.45)',
+                overflow: 'hidden',
               }}
-            />
+            >
+              <View
+                style={{
+                  position: 'absolute',
+                  left: 0,
+                  right: 0,
+                  top: 0,
+                  bottom: 0,
+                  backgroundColor: running
+                    ? 'rgba(34,197,94,0.55)'
+                    : 'rgba(59,130,246,0.45)',
+                }}
+              />
+              <Animated.View
+                style={{
+                  height: '100%',
+                  flexDirection: 'row',
+                  transform: [{ translateY: waveTranslateY }],
+                }}
+              >
+                {Array.from({ length: waveTiles }).map((_, i) => (
+                  <Svg
+                    key={i}
+                    width={waveWidth}
+                    height={28}
+                    viewBox="0 0 120 28"
+                  >
+                    <Path
+                      d="M0 10 Q 15 2 30 10 T 60 10 T 90 10 T 120 10 V28 H0 Z"
+                      fill="rgba(255,255,255,0.16)"
+                    />
+                    <Path
+                      d="M0 12 Q 15 6 30 12 T 60 12 T 90 12 T 120 12"
+                      stroke="rgba(255,255,255,0.35)"
+                      strokeWidth={2}
+                      fill="none"
+                      strokeLinecap="round"
+                    />
+                  </Svg>
+                ))}
+              </Animated.View>
+            </Animated.View>
           </ThemedView>
         </ThemedView>
 
