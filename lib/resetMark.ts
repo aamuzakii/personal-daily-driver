@@ -9,6 +9,7 @@ export const LEARN_RIYAD_TAB1_TABLE = 'learn_riyad_tab1';
 export const LEARN_SURAH_TAB3_TABLE = 'learn_surah_tab3';
 export const LEARN_AKMIL_TAB4_TABLE = 'learn_akmil_tab4';
 export const LEARN_UMDAH_TAB5_TABLE = 'learn_umdah_tab5';
+export const LEARN_NAWAQID_TAB7_TABLE = 'learn_nawaqid_tab7';
 
 export const logSqliteDb = async (db: any, label = 'sqlite') => {
   try {
@@ -395,6 +396,59 @@ export const loadBlind75WatchCounts = async (
     map.set(id, Number.isFinite(c) ? c : 0);
   }
   return map;
+};
+
+export const ensureLearnNawaqidTable = async (
+  db: any,
+  table = LEARN_NAWAQID_TAB7_TABLE,
+) => {
+  await execSql(
+    db,
+    `CREATE TABLE IF NOT EXISTS ${table} (
+      item_key TEXT PRIMARY KEY NOT NULL,
+      progress INTEGER NOT NULL,
+      updated_ms INTEGER NOT NULL
+    )`,
+  );
+};
+
+export const loadLearnNawaqidProgress = async (
+  db: any,
+  table = LEARN_NAWAQID_TAB7_TABLE,
+) => {
+  const res = await execSql(db, `SELECT item_key, progress FROM ${table}`);
+  const map = new Map<string, number>();
+  for (let i = 0; i < (res?.rows?.length ?? 0); i++) {
+    const r = res.rows.item(i);
+    const k = String(r?.item_key ?? '');
+    if (!k) continue;
+    const p = Number(r?.progress ?? 0);
+    map.set(
+      k,
+      Number.isFinite(p) ? Math.max(0, Math.min(100, Math.round(p))) : 0,
+    );
+  }
+  return map;
+};
+
+export const setLearnNawaqidProgress = async (
+  db: any,
+  itemKey: string,
+  progress: number,
+  table = LEARN_NAWAQID_TAB7_TABLE,
+) => {
+  const k = String(itemKey ?? '');
+  if (!k) return;
+  const p = Math.max(0, Math.min(100, Math.round(Number(progress ?? 0))));
+  await execSql(
+    db,
+    `INSERT INTO ${table} (item_key, progress, updated_ms)
+     VALUES (?, ?, ?)
+     ON CONFLICT(item_key) DO UPDATE SET
+       progress=excluded.progress,
+       updated_ms=excluded.updated_ms`,
+    [k, p, Date.now()],
+  );
 };
 
 export const setBlind75WatchCount = async (

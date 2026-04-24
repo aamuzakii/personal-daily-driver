@@ -11,13 +11,15 @@ import LearnTab3 from '@/components/learn-tabs/tab-3';
 import LearnTab4 from '@/components/learn-tabs/tab-4';
 import LearnTab5 from '@/components/learn-tabs/tab-5';
 import LearnTab6 from '@/components/learn-tabs/tab-6';
+import LearnTab7 from '@/components/learn-tabs/tab-7';
 import ParallaxScrollView from '@/components/parallax-scroll-view';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 
 export default function LearnScreen() {
   const tabs = useMemo(
-    () => ['Tab 1', 'Tab 2', 'Tab 3', 'Tab 4', 'Tab 5', 'Tab 6'] as const,
+    () =>
+      ['Tab 1', 'Tab 2', 'Tab 3', 'Tab 4', 'Tab 5', 'Tab 6', 'Tab 7'] as const,
     [],
   );
   const [active, setActive] = useState<(typeof tabs)[number]>('Tab 1');
@@ -117,7 +119,8 @@ export default function LearnScreen() {
     if (active === 'Tab 3') return <LearnTab3 />;
     if (active === 'Tab 4') return <LearnTab4 />;
     if (active === 'Tab 5') return <LearnTab5 />;
-    return <LearnTab6 />;
+    if (active === 'Tab 6') return <LearnTab6 />;
+    return <LearnTab7 />;
   }, [active]);
 
   const tabsHeader = (
