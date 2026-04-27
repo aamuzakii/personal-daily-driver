@@ -402,13 +402,84 @@ export const ensureLearnNawaqidTable = async (
   db: any,
   table = LEARN_NAWAQID_TAB7_TABLE,
 ) => {
+  try {
+    const info = await execSql(db, `PRAGMA table_info(${table})`);
+    const cols: string[] = [];
+    for (let i = 0; i < (info?.rows?.length ?? 0); i++) {
+      const r = info.rows.item(i);
+      const n = String(r?.name ?? '');
+      if (n) cols.push(n);
+    }
+
+    if (cols.length === 0) {
+      // table doesn't exist -> create with new schema including displayed_title
+      await execSql(
+        db,
+        `CREATE TABLE IF NOT EXISTS ${table} (
+          item_key TEXT PRIMARY KEY NOT NULL,
+          progress INTEGER NOT NULL,
+          displayed_title TEXT,
+          updated_ms INTEGER NOT NULL
+        )`,
+      );
+      return;
+    }
+
+    // if table exists but missing displayed_title column, add it
+    if (!cols.includes('displayed_title')) {
+      await execSql(db, `ALTER TABLE ${table} ADD COLUMN displayed_title TEXT`);
+    }
+  } catch (_e) {
+    // fallback: ensure table exists with the newer schema
+    await execSql(
+      db,
+      `CREATE TABLE IF NOT EXISTS ${table} (
+        item_key TEXT PRIMARY KEY NOT NULL,
+        progress INTEGER NOT NULL,
+        displayed_title TEXT,
+        updated_ms INTEGER NOT NULL
+      )`,
+    );
+  }
+};
+
+export const loadLearnNawaqidDisplayedTitle = async (
+  db: any,
+  itemKey: string,
+  table = LEARN_NAWAQID_TAB7_TABLE,
+) => {
+  const k = String(itemKey ?? '');
+  if (!k) return '';
+  const res = await execSql(
+    db,
+    `SELECT displayed_title FROM ${table} WHERE item_key = ? LIMIT 1`,
+    [k],
+  );
+  if ((res?.rows?.length ?? 0) === 0) return '';
+  const r = res.rows.item(0);
+  return r?.displayed_title ?? '';
+};
+
+export const setLearnNawaqidDisplayedTitle = async (
+  db: any,
+  itemKey: string,
+  displayedTitle: string,
+  table = LEARN_NAWAQID_TAB7_TABLE,
+) => {
+  const k = String(itemKey ?? '');
+  if (!k) return;
+  const title =
+    displayedTitle === null || displayedTitle === undefined
+      ? ''
+      : String(displayedTitle);
   await execSql(
     db,
-    `CREATE TABLE IF NOT EXISTS ${table} (
-      item_key TEXT PRIMARY KEY NOT NULL,
-      progress INTEGER NOT NULL,
-      updated_ms INTEGER NOT NULL
-    )`,
+    `INSERT INTO ${table} (item_key, progress, displayed_title, updated_ms)
+     VALUES (?, COALESCE((SELECT progress FROM ${table} WHERE item_key = ?), 0), ?, ?)
+     ON CONFLICT(item_key) DO UPDATE SET
+       displayed_title=excluded.displayed_title,
+       updated_ms=excluded.updated_ms`,
+    [k, k, title, Date.now()],
   );
 };
 

@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 
 import { useRouter } from 'expo-router';
-import { Pressable, ScrollView } from 'react-native';
+import { Pressable, ScrollView, TextInput } from 'react-native';
 
 import nawaqidul from '@/assets/json/nawaqidul-islam.json';
 import { ThemedText } from '@/components/themed-text';
@@ -10,6 +10,7 @@ import {
   ensureLearnNawaqidTable,
   loadLearnNawaqidProgress,
   openAppDb,
+  setLearnNawaqidDisplayedTitle,
   setLearnNawaqidProgress,
 } from '@/lib/resetMark';
 
@@ -50,6 +51,8 @@ function LearnItem({
 }) {
   const router = useRouter();
   const [progress, setProgress] = useState<number>(0);
+  const [editing, setEditing] = useState(false);
+  const [displayedTitle, setDisplayedTitle] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -59,6 +62,15 @@ function LearnItem({
         await ensureLearnNawaqidTable(db);
         const map = await loadLearnNawaqidProgress(db);
         if (!cancelled) setProgress(map.get(itemKey) ?? 0);
+        // load displayed title if any
+        try {
+          const { loadLearnNawaqidDisplayedTitle } =
+            await import('@/lib/resetMark');
+          const dt = await loadLearnNawaqidDisplayedTitle(db, itemKey);
+          if (!cancelled && dt) setDisplayedTitle(dt ?? null);
+        } catch (e) {
+          // optional
+        }
       } catch (_e) {
         // ignore
       }
@@ -108,26 +120,63 @@ function LearnItem({
 
   return (
     <ThemedView style={{ flex: 1 }}>
-      <Pressable
-        onPress={() =>
-          router.push({
-            pathname: '/webview',
-            params: { url: item.url, title: `Nawaqidul Islam • ${item.title}` },
-          })
-        }
-        accessibilityRole="link"
-      >
-        <ThemedText style={{ fontSize: 14, textDecorationLine: 'underline' }}>
-          {item.title}
-        </ThemedText>
-      </Pressable>
+      <ThemedView style={{ flexDirection: 'row', alignItems: 'center' }}>
+        {!editing ? (
+          <>
+            <Pressable
+              onPress={() =>
+                router.push({
+                  pathname: '/webview',
+                  params: {
+                    url: item.url,
+                    title: `Nawaqidul Islam • ${item.title}`,
+                  },
+                })
+              }
+              style={{ flex: 1 }}
+            >
+              <ThemedText
+                style={{ fontSize: 14, textDecorationLine: 'underline' }}
+                numberOfLines={2}
+              >
+                {displayedTitle ?? item.title}
+              </ThemedText>
+            </Pressable>
+
+            <Pressable
+              onPress={() => setEditing(true)}
+              style={{ padding: 8, marginLeft: 8, alignSelf: 'flex-start' }}
+              accessibilityLabel="Edit title"
+            >
+              <ThemedText style={{ opacity: 0.9, fontSize: 14 }}>✎</ThemedText>
+            </Pressable>
+          </>
+        ) : (
+          <TextInput
+            autoFocus
+            value={displayedTitle ?? item.title}
+            onChangeText={(t) => setDisplayedTitle(String(t ?? ''))}
+            onBlur={async () => {
+              setEditing(false);
+              try {
+                const db2 = openAppDb();
+                await setLearnNawaqidDisplayedTitle(
+                  db2,
+                  itemKey,
+                  displayedTitle ?? '',
+                );
+              } catch (e) {
+                console.log('Failed to persist displayed title', e);
+              }
+            }}
+            style={{ fontSize: 14, padding: 4, flex: 1 }}
+            placeholder={item.title}
+          />
+        )}
+      </ThemedView>
 
       {item.duration ? (
         <ThemedView>
-          <ThemedText style={{ marginTop: 6, fontSize: 12, opacity: 0.8 }}>
-            {item.duration}
-          </ThemedText>
-
           <ThemedView
             style={{ marginTop: 8 }}
             onLayout={(e) => setTrackWidth(e.nativeEvent.layout.width)}
@@ -170,9 +219,6 @@ function LearnItem({
                 marginTop: 8,
               }}
             >
-              <ThemedText style={{ fontSize: 12, opacity: 0.7 }}>
-                {progress}% watched
-              </ThemedText>
               <ThemedText style={{ fontSize: 12, opacity: 0.6 }}>
                 {formatSecondsToHMS(watchedSeconds)} watched
               </ThemedText>
