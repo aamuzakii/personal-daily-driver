@@ -13,6 +13,33 @@ import {
   setLearnNawaqidProgress,
 } from '@/lib/resetMark';
 
+// helpers to parse and format duration strings like "1:27:08" or "57:17"
+function parseDurationToSeconds(d?: string) {
+  if (!d || typeof d !== 'string') return 0;
+  const parts = d.split(':').map((p) => Number(p.replace(/[^0-9]/g, '') || 0));
+  if (parts.length === 0) return 0;
+  // support H:MM:SS or MM:SS or SS
+  let seconds = 0;
+  if (parts.length === 3) {
+    seconds = parts[0] * 3600 + parts[1] * 60 + parts[2];
+  } else if (parts.length === 2) {
+    seconds = parts[0] * 60 + parts[1];
+  } else {
+    seconds = parts[0];
+  }
+  return Number.isFinite(seconds) ? Math.max(0, Math.round(seconds)) : 0;
+}
+
+function formatSecondsToHMS(s: number) {
+  const sec = Math.max(0, Math.round(Number(s) || 0));
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  const ss = sec % 60;
+  if (h > 0)
+    return `${h}:${String(m).padStart(2, '0')}:${String(ss).padStart(2, '0')}`;
+  return `${m}:${String(ss).padStart(2, '0')}`;
+}
+
 // Local per-item component to manage progress (avoids calling hooks inside map)
 function LearnItem({
   item,
@@ -69,6 +96,15 @@ function LearnItem({
     setLearnNawaqidProgress(db, itemKey, pct).catch(() => {});
     setProgress(pct);
   };
+
+  const totalSeconds = useMemo(
+    () => parseDurationToSeconds(item.duration),
+    [item.duration],
+  );
+  const watchedSeconds = useMemo(
+    () => Math.round((totalSeconds * (progress ?? 0)) / 100),
+    [totalSeconds, progress],
+  );
 
   return (
     <ThemedView style={{ flex: 1 }}>
@@ -136,6 +172,9 @@ function LearnItem({
             >
               <ThemedText style={{ fontSize: 12, opacity: 0.7 }}>
                 {progress}% watched
+              </ThemedText>
+              <ThemedText style={{ fontSize: 12, opacity: 0.6 }}>
+                {formatSecondsToHMS(watchedSeconds)} watched
               </ThemedText>
             </ThemedView>
           </ThemedView>
