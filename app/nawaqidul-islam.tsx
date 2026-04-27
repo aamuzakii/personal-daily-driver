@@ -150,6 +150,18 @@ function LearnItem({
             >
               <ThemedText style={{ opacity: 0.9, fontSize: 14 }}>✎</ThemedText>
             </Pressable>
+            <Pressable
+              onPress={() =>
+                router.push({
+                  pathname: '/nawaqidul-islam/note',
+                  params: { itemKey },
+                })
+              }
+              style={{ padding: 8, marginLeft: 4, alignSelf: 'flex-start' }}
+              accessibilityLabel="Open note"
+            >
+              <ThemedText style={{ opacity: 0.9, fontSize: 14 }}>📝</ThemedText>
+            </Pressable>
           </>
         ) : (
           <TextInput

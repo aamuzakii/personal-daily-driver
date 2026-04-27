@@ -429,6 +429,10 @@ export const ensureLearnNawaqidTable = async (
     if (!cols.includes('displayed_title')) {
       await execSql(db, `ALTER TABLE ${table} ADD COLUMN displayed_title TEXT`);
     }
+    // if table exists but missing note column, add it
+    if (!cols.includes('note')) {
+      await execSql(db, `ALTER TABLE ${table} ADD COLUMN note TEXT`);
+    }
   } catch (_e) {
     // fallback: ensure table exists with the newer schema
     await execSql(
@@ -436,11 +440,49 @@ export const ensureLearnNawaqidTable = async (
       `CREATE TABLE IF NOT EXISTS ${table} (
         item_key TEXT PRIMARY KEY NOT NULL,
         progress INTEGER NOT NULL,
-        displayed_title TEXT,
+      displayed_title TEXT,
+      note TEXT,
         updated_ms INTEGER NOT NULL
       )`,
     );
   }
+};
+
+export const loadLearnNawaqidNote = async (
+  db: any,
+  itemKey: string,
+  table = LEARN_NAWAQID_TAB7_TABLE,
+) => {
+  const k = String(itemKey ?? '');
+  if (!k) return '';
+  const res = await execSql(
+    db,
+    `SELECT note FROM ${table} WHERE item_key = ? LIMIT 1`,
+    [k],
+  );
+  if ((res?.rows?.length ?? 0) === 0) return '';
+  const r = res.rows.item(0);
+  return r?.note ?? '';
+};
+
+export const setLearnNawaqidNote = async (
+  db: any,
+  itemKey: string,
+  note: string,
+  table = LEARN_NAWAQID_TAB7_TABLE,
+) => {
+  const k = String(itemKey ?? '');
+  if (!k) return;
+  const n = note === null || note === undefined ? '' : String(note);
+  await execSql(
+    db,
+    `INSERT INTO ${table} (item_key, progress, displayed_title, note, updated_ms)
+     VALUES (?, COALESCE((SELECT progress FROM ${table} WHERE item_key = ?), 0), COALESCE((SELECT displayed_title FROM ${table} WHERE item_key = ?), ''), ?, ?)
+     ON CONFLICT(item_key) DO UPDATE SET
+       note=excluded.note,
+       updated_ms=excluded.updated_ms`,
+    [k, k, k, n, Date.now()],
+  );
 };
 
 export const loadLearnNawaqidDisplayedTitle = async (
