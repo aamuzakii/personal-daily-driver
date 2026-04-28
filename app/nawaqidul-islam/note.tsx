@@ -1,10 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useState } from 'react';
 
+import { useNavigation } from '@react-navigation/native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Pressable, ScrollView, TextInput } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { Colors } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import {
   loadLearnNawaqidNote,
   openAppDb,
@@ -46,32 +49,33 @@ export default function NawaqidulNoteScreen() {
     }
   };
 
-  return (
-    <ThemedView style={{ flex: 1 }}>
-      <ThemedView
-        style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: 12,
-          borderBottomWidth: 1,
-          borderBottomColor: 'rgba(127,127,127,0.12)',
-        }}
-      >
-        <Pressable onPress={() => router.back()} style={{ padding: 8 }}>
-          <ThemedText>Back</ThemedText>
-        </Pressable>
-        <ThemedText type="subtitle">Note</ThemedText>
+  const navigation: any = useNavigation();
+  const colorScheme = useColorScheme();
+  const colors = Colors[colorScheme ?? 'light'];
+
+  useLayoutEffect(() => {
+    // put Save button into the native header (right side)
+    navigation.setOptions({
+      headerTitle: 'Note',
+      headerRight: () => (
         <Pressable
-          onPress={() => {
-            save();
-            router.back();
+          onPress={async () => {
+            await save();
+            try {
+              router.back();
+            } catch {}
           }}
           style={{ padding: 8 }}
         >
           <ThemedText>Save</ThemedText>
         </Pressable>
-      </ThemedView>
+      ),
+    });
+  }, [navigation, note, colorScheme]);
+
+  return (
+    <ThemedView style={{ flex: 1 }}>
+      {/* header moved to native header (back arrow + save) */}
 
       <ScrollView contentContainerStyle={{ padding: 12 }}>
         <TextInput
@@ -85,8 +89,14 @@ export default function NawaqidulNoteScreen() {
             textAlignVertical: 'top',
             padding: 8,
             borderWidth: 1,
-            borderColor: 'rgba(127,127,127,0.12)',
+            borderColor:
+              colorScheme === 'dark'
+                ? 'rgba(255,255,255,0.06)'
+                : 'rgba(127,127,127,0.12)',
             borderRadius: 8,
+            backgroundColor: colorScheme === 'dark' ? '#222425' : '#ffffff',
+            color:
+              colorScheme === 'dark' ? Colors.dark.text : Colors.light.text,
           }}
         />
       </ScrollView>

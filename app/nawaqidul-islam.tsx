@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { Pressable, ScrollView, TextInput } from 'react-native';
 
 import nawaqidul from '@/assets/json/nawaqidul-islam.json';
+import ItemActionsModal from '@/components/item-actions-modal';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import {
@@ -53,6 +54,7 @@ function LearnItem({
   const [progress, setProgress] = useState<number>(0);
   const [editing, setEditing] = useState(false);
   const [displayedTitle, setDisplayedTitle] = useState<string | null>(null);
+  const [modalVisible, setModalVisible] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -124,6 +126,22 @@ function LearnItem({
         {!editing ? (
           <>
             <Pressable
+              onPress={() => setModalVisible(true)}
+              style={{
+                width: 22,
+                height: 22,
+                borderRadius: 6,
+                borderWidth: 1,
+                borderColor: 'rgba(127,127,127,0.28)',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginRight: 8,
+              }}
+              accessibilityRole="button"
+            >
+              <ThemedText style={{ fontSize: 13 }}>+</ThemedText>
+            </Pressable>
+            <Pressable
               onPress={() =>
                 router.push({
                   pathname: '/webview',
@@ -162,6 +180,14 @@ function LearnItem({
             >
               <ThemedText style={{ opacity: 0.9, fontSize: 14 }}>📝</ThemedText>
             </Pressable>
+
+            {/* Modal for plus actions (reset progress) - extracted component */}
+            <ItemActionsModal
+              visible={modalVisible}
+              onClose={() => setModalVisible(false)}
+              onResetZero={() => changeProgress(0)}
+              onSetHundred={() => changeProgress(100)}
+            />
           </>
         ) : (
           <TextInput
@@ -298,24 +324,6 @@ export default function NawaqidulIslamScreen() {
                 paddingHorizontal: 10,
               }}
             >
-              <Pressable
-                onPress={() => {
-                  // placeholder for future actions (e.g., labels)
-                }}
-                style={{
-                  width: 22,
-                  height: 22,
-                  borderRadius: 6,
-                  borderWidth: 1,
-                  borderColor: 'rgba(127,127,127,0.28)',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-                accessibilityRole="button"
-              >
-                <ThemedText style={{ fontSize: 13 }}>+</ThemedText>
-              </Pressable>
-
               <LearnItem item={it} itemKey={itemKey} />
             </ThemedView>
           );
