@@ -55,6 +55,7 @@ function LearnItem({
   const [editing, setEditing] = useState(false);
   const [displayedTitle, setDisplayedTitle] = useState<string | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
+  const [sliderEditable, setSliderEditable] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -169,6 +170,19 @@ function LearnItem({
               <ThemedText style={{ opacity: 0.9, fontSize: 14 }}>✎</ThemedText>
             </Pressable>
             <Pressable
+              onPress={() => setSliderEditable((s) => !s)}
+              style={{ padding: 8, marginLeft: 6, alignSelf: 'flex-start' }}
+              accessibilityLabel={
+                sliderEditable
+                  ? 'Lock progress slider'
+                  : 'Unlock progress slider'
+              }
+            >
+              <ThemedText style={{ opacity: 0.85, fontSize: 14 }}>
+                {sliderEditable ? '🔓' : '🔒'}
+              </ThemedText>
+            </Pressable>
+            <Pressable
               onPress={() =>
                 router.push({
                   pathname: '/nawaqidul-islam/note',
@@ -216,18 +230,21 @@ function LearnItem({
       {item.duration ? (
         <ThemedView>
           <ThemedView
-            style={{ marginTop: 8 }}
+            style={{ marginTop: 8, opacity: sliderEditable ? 1 : 0.76 }}
             onLayout={(e) => setTrackWidth(e.nativeEvent.layout.width)}
-            onStartShouldSetResponder={() => true}
+            onStartShouldSetResponder={() => !!sliderEditable}
             onResponderGrant={(e) => {
+              if (!sliderEditable) return;
               const locX = e.nativeEvent.locationX;
               onStartOrMove(locX, e.nativeEvent.pageX);
             }}
             onResponderMove={(e) => {
+              if (!sliderEditable) return;
               const locX = e.nativeEvent.locationX;
               onStartOrMove(locX, e.nativeEvent.pageX);
             }}
             onResponderRelease={(e) => {
+              if (!sliderEditable) return;
               const locX = e.nativeEvent.locationX;
               onRelease(locX);
             }}
