@@ -10,8 +10,8 @@ export default function LearnTab7() {
   const router = useRouter();
   const buttons = [
     'nawaqidul islam',
-    'Action B',
-    'Action C',
+    'Shifat Shalat',
+    'Tafsir Firanda',
     'Action D',
     'Action E',
   ];
@@ -36,8 +36,16 @@ export default function LearnTab7() {
                 router.push('/nawaqidul-islam');
                 return;
               }
+              if (label === 'Shifat Shalat') {
+                router.push('/shifat-shalat');
+                return;
+              }
+              if (label === 'Tafsir Firanda') {
+                router.push('/tafsir-firanda');
+                return;
+              }
               // placeholder handler for other actions
-              // eslint-disable-next-line no-console
+
               console.log('Pressed', label);
             }}
             style={{
