@@ -1,0 +1,22 @@
+components/learn-tabs/tab-8.tsx
+  s_fef3f16d1ddc90::t_78ffa6049d846e 25,34,41-59,61,65-71,75-77
+  s_fef3f16d1ddc90::t_d21a5ae2ed6916 90-91,93,99
+  s_fef3f16d1ddc90::t_86bffdd3c95a2d 74,271
+  s_fef3f16d1ddc90::t_dea7d09c6b82c7 214,229-232,234
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "b8f318458496337ee611ec5e2cf3c59b80c462f6",
+  "prompts": {},
+  "sessions": {
+    "s_fef3f16d1ddc90": {
+      "agent_id": {
+        "tool": "github-copilot",
+        "id": "f2d46127-a630-4be6-a409-26e41e35c2d5",
+        "model": "gpt-5.3-codex"
+      },
+      "human_author": "Abdullah Al Muzaki <aamuzakii@gmail.com>"
+    }
+  }
+}
