@@ -1,0 +1,23 @@
+components/learn-tabs/tab-8.tsx
+  s_fef3f16d1ddc90::t_ea79245cea4819 1-60,63-64,68-93,95-247,250-252,255-277
+app/(tabs)/learn.tsx
+  s_fef3f16d1ddc90::t_ea79245cea4819 15,23-32,59,70-71,133-134
+android/app/src/main/AndroidManifest.xml
+  s_fef3f16d1ddc90::t_ea79245cea4819 2,13
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "04cfe90538603fe8bbf762b385993f191a82b0bb",
+  "prompts": {},
+  "sessions": {
+    "s_fef3f16d1ddc90": {
+      "agent_id": {
+        "tool": "github-copilot",
+        "id": "f2d46127-a630-4be6-a409-26e41e35c2d5",
+        "model": "gpt-5.3-codex"
+      },
+      "human_author": "Abdullah Al Muzaki <aamuzakii@gmail.com>"
+    }
+  }
+}
