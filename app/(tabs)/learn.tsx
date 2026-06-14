@@ -12,6 +12,7 @@ import LearnTab4 from '@/components/learn-tabs/tab-4';
 import LearnTab5 from '@/components/learn-tabs/tab-5';
 import LearnTab6 from '@/components/learn-tabs/tab-6';
 import LearnTab7 from '@/components/learn-tabs/tab-7';
+import LearnTab8 from '@/components/learn-tabs/tab-8';
 import ParallaxScrollView from '@/components/parallax-scroll-view';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -19,7 +20,16 @@ import { ThemedView } from '@/components/themed-view';
 export default function LearnScreen() {
   const tabs = useMemo(
     () =>
-      ['Tab 1', 'Tab 2', 'Tab 3', 'Tab 4', 'Tab 5', 'Tab 6', 'Tab 7'] as const,
+      [
+        'Tab 1',
+        'Tab 2',
+        'Tab 3',
+        'Tab 4',
+        'Tab 5',
+        'Tab 6',
+        'Tab 7',
+        'Kids Vocab',
+      ] as const,
     [],
   );
   const [active, setActive] = useState<(typeof tabs)[number]>('Tab 1');
@@ -46,7 +56,7 @@ export default function LearnScreen() {
       'planet-outline',
       'code-slash-outline',
       'sparkles-outline',
-      'extension-puzzle-outline',
+      'book-outline',
     ],
     [],
   );
@@ -57,8 +67,8 @@ export default function LearnScreen() {
     return tabIcons[sum % tabIcons.length];
   };
 
-  const topTabs = useMemo(() => tabs.slice(0, 3), [tabs]);
-  const bottomTabs = useMemo(() => tabs.slice(3), [tabs]);
+  const topTabs = useMemo(() => tabs.slice(0, 4), [tabs]);
+  const bottomTabs = useMemo(() => tabs.slice(4), [tabs]);
 
   const renderTab = (t: (typeof tabs)[number]) => {
     const isActive = t === active;
@@ -120,7 +130,8 @@ export default function LearnScreen() {
     if (active === 'Tab 4') return <LearnTab4 />;
     if (active === 'Tab 5') return <LearnTab5 />;
     if (active === 'Tab 6') return <LearnTab6 />;
-    return <LearnTab7 />;
+    if (active === 'Tab 7') return <LearnTab7 />;
+    return <LearnTab8 />;
   }, [active]);
 
   const tabsHeader = (

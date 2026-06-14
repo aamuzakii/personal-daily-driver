@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 
-import { Pressable } from 'react-native';
+import { Modal, Pressable, StyleSheet } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -17,6 +17,7 @@ const EXPLORE_COUNTER_TABLE = 'explore_counter';
 
 export default function ExploreCounter({ db, items, resetNonce }: Props) {
   const [counts, setCounts] = useState<Record<string, number>>({});
+  const [modalKey, setModalKey] = useState<string | null>(null);
   const prevResetNonce = useRef<number>(resetNonce);
 
   const normalizedItems = useMemo(
@@ -72,6 +73,17 @@ export default function ExploreCounter({ db, items, resetNonce }: Props) {
     );
   };
 
+  const incrementForKey = (key: string) => {
+    setCounts((p) => {
+      const nextVal = (p[key] ?? 0) + 1;
+      const next = { ...p, [key]: nextVal };
+      upsertCount(key, nextVal).catch((e) =>
+        console.log('Failed to persist explore counter (sqlite):', e),
+      );
+      return next;
+    });
+  };
+
   useEffect(() => {
     let cancelled = false;
 
@@ -123,17 +135,8 @@ export default function ExploreCounter({ db, items, resetNonce }: Props) {
 
               <Pressable
                 onPress={() => {
-                  setCounts((p) => {
-                    const nextVal = (p[k] ?? 0) + 1;
-                    const next = { ...p, [k]: nextVal };
-                    upsertCount(k, nextVal).catch((e) =>
-                      console.log(
-                        'Failed to persist explore counter (sqlite):',
-                        e,
-                      ),
-                    );
-                    return next;
-                  });
+                  // open modal so user can press a larger + button
+                  setModalKey(k);
                 }}
                 style={{
                   width: 34,
@@ -154,6 +157,73 @@ export default function ExploreCounter({ db, items, resetNonce }: Props) {
           );
         })}
       </ThemedView>
+
+      {/* Modal for big + button */}
+      <Modal
+        visible={modalKey != null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setModalKey(null)}
+      >
+        <ThemedView style={styles.modalOverlay}>
+          <ThemedView style={styles.modalBox}>
+            <Pressable
+              onPress={() => setModalKey(null)}
+              style={styles.closeButton}
+              accessibilityRole="button"
+            >
+              <ThemedText style={{ fontSize: 20 }}>×</ThemedText>
+            </Pressable>
+
+            <Pressable
+              onPress={() => {
+                if (modalKey) incrementForKey(modalKey);
+              }}
+              style={styles.bigButton}
+              accessibilityRole="button"
+            >
+              <ThemedText style={{ fontSize: 48, lineHeight: 48 }}>
+                +
+              </ThemedText>
+            </Pressable>
+          </ThemedView>
+        </ThemedView>
+      </Modal>
     </ThemedView>
   );
 }
+
+const styles = StyleSheet.create({
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalBox: {
+    width: 260,
+    padding: 20,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.98)',
+  },
+  bigButton: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    borderWidth: 1,
+    borderColor: 'rgba(127,127,127,0.25)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  closeButton: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+});
