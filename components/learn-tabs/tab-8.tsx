@@ -15,7 +15,7 @@ const TAG_UID_MAP: Record<string, string> = {
   '040DF8CAC12191': 'wolf',
   '040DF8CAC12190': 'bucket',
   '04A1B2C3D6': 'jibal',
-  '04A1B2C3D7': 'siang',
+  '530DDCF9930001': 'siang',
 };
 // ------------------------------------------------------------------------
 
@@ -96,7 +96,7 @@ export default function LearnTab8() {
         setStatus('found');
         log(`Matched: ${word}`);
 
-        playSound(word);
+        await playSound(word);
       } else {
         setLastWord('');
         setStatus('found');
