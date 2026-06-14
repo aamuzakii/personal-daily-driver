@@ -113,6 +113,9 @@ android {
     }
     buildTypes {
         debug {
+            applicationIdSuffix ".dev"
+            versionNameSuffix "-dev"
+            resValue "string", "app_name", "my-app Dev"
             signingConfig signingConfigs.debug
         }
         release {
