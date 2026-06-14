@@ -22,7 +22,7 @@ export default function LearnTab8() {
     'idle',
   );
 
-  const dummySoundRef = React.useRef<any>(null);
+  const soundsRef = React.useRef<Map<string, any>>(new Map());
   const scanningRef = React.useRef(false);
   const cancelledRef = React.useRef(false);
   const scanLoopRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -31,30 +31,50 @@ export default function LearnTab8() {
     console.log(`[NFC] ${msg}`);
   }, []);
 
-  const loadDummySound = React.useCallback(async () => {
+  const loadSounds = React.useCallback(async () => {
     try {
       const mod: any = await import('expo-av');
       const Audio = mod?.Audio;
       if (!Audio) return;
 
       await Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
-      const { sound } = await Audio.Sound.createAsync(
-        require('../../audio/cheer1.mp3'),
-        { shouldPlay: false },
-      );
-      dummySoundRef.current = sound;
+
+      const pairs: [string, any][] = [
+        ['wolf', require('../../audio/wolf.mp3')],
+        ['bucket', require('../../audio/bucket.mp3')],
+      ];
+
+      const map = new Map<string, any>();
+      for (const [key, src] of pairs) {
+        try {
+          const { sound } = await Audio.Sound.createAsync(src, {
+            shouldPlay: false,
+          });
+          map.set(key, sound);
+          log(`Loaded: ${key}.mp3`);
+        } catch {
+          log(`Failed to load: ${key}.mp3`);
+        }
+      }
+      soundsRef.current = map;
     } catch {
-      log('Failed to load dummy sound');
+      log('Failed to load audio system');
     }
   }, [log]);
 
-  const playDummySound = React.useCallback(async () => {
-    const sound = dummySoundRef.current;
-    if (!sound) return;
-    try {
-      await sound.replayAsync();
-    } catch {}
-  }, []);
+  const playSound = React.useCallback(
+    async (key: string) => {
+      const sound = soundsRef.current.get(key);
+      if (!sound) {
+        log(`No sound loaded for: ${key}`);
+        return;
+      }
+      try {
+        await sound.replayAsync();
+      } catch {}
+    },
+    [log],
+  );
 
   const handleVocabWord = React.useCallback(
     async (word: string) => {
@@ -67,14 +87,16 @@ export default function LearnTab8() {
 
       switch (normalized) {
         case 'wolf':
+          await playSound('wolf');
+          break;
         case 'bucket':
-          await playDummySound();
+          await playSound('bucket');
           break;
         default:
           break;
       }
     },
-    [playDummySound, log],
+    [playSound, log],
   );
 
   const extractText = React.useCallback((records: TagRecord[] | undefined) => {
@@ -189,7 +211,7 @@ export default function LearnTab8() {
           return;
         }
 
-        await loadDummySound();
+        await loadSounds();
 
         if (!cancelled) {
           void startScanLoop();
@@ -204,11 +226,12 @@ export default function LearnTab8() {
     return () => {
       cancelled = true;
       stopScanLoop();
-      const sound = dummySoundRef.current;
-      dummySoundRef.current = null;
-      if (sound) void sound.unloadAsync().catch(() => {});
+      for (const sound of soundsRef.current.values()) {
+        void sound.unloadAsync().catch(() => {});
+      }
+      soundsRef.current.clear();
     };
-  }, [loadDummySound, log, startScanLoop, stopScanLoop]);
+  }, [loadSounds, log, startScanLoop, stopScanLoop]);
 
   const isScanning = status === 'scanning';
   const hasCard = lastWord !== '';
@@ -245,11 +268,7 @@ export default function LearnTab8() {
         <Ionicons
           name={isScanning ? 'radio-outline' : 'wifi-outline'}
           size={40}
-          color={
-            isScanning
-              ? 'rgba(59,130,246,0.9)'
-              : 'rgba(127,127,127,0.55)'
-          }
+          color={isScanning ? 'rgba(59,130,246,0.9)' : 'rgba(127,127,127,0.55)'}
         />
       </ThemedView>
 
@@ -320,4 +339,3 @@ export default function LearnTab8() {
     </ThemedView>
   );
 }
-
