@@ -3,21 +3,25 @@ import React from 'react';
 import { Platform } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
-import NfcManager, { Ndef, NfcTech } from 'react-native-nfc-manager';
+import NfcManager, { NfcTech } from 'react-native-nfc-manager';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 
-type TagRecord = {
-  tnf?: number;
-  type?: string | number[];
-  payload?: number[];
-};
-
 const SCAN_LOOP_DELAY_MS = 600;
+
+// --- Tag UID → card name mapping (edit these with your real tag IDs) ---
+const TAG_UID_MAP: Record<string, string> = {
+  '040DF8CAC12191': 'wolf',
+  '040DF8CAC12190': 'bucket',
+  '04A1B2C3D6': 'jibal',
+  '04A1B2C3D7': 'siang',
+};
+// ------------------------------------------------------------------------
 
 export default function LearnTab8() {
   const [lastWord, setLastWord] = React.useState('');
+  const [lastTagId, setLastTagId] = React.useState('');
   const [status, setStatus] = React.useState<'idle' | 'scanning' | 'found'>(
     'idle',
   );
@@ -42,6 +46,8 @@ export default function LearnTab8() {
       const pairs: [string, any][] = [
         ['wolf', require('../../audio/wolf.mp3')],
         ['bucket', require('../../audio/bucket.mp3')],
+        ['jibal', require('../../audio/jibal.mp3')],
+        ['siang', require('../../audio/siang.mp3')],
       ];
 
       const map = new Map<string, any>();
@@ -76,54 +82,29 @@ export default function LearnTab8() {
     [log],
   );
 
-  const handleVocabWord = React.useCallback(
-    async (word: string) => {
-      const normalized = word.trim().toLowerCase();
-      if (!normalized) return;
+  const handleTagId = React.useCallback(
+    async (tagId: string) => {
+      const sanitized = tagId.trim().toUpperCase();
+      if (!sanitized) return;
 
-      setLastWord(normalized);
-      setStatus('found');
-      log(`Card: ${normalized}`);
+      setLastTagId(sanitized);
+      log(`Tag ID: ${sanitized}`);
 
-      switch (normalized) {
-        case 'wolf':
-          await playSound('wolf');
-          break;
-        case 'bucket':
-          await playSound('bucket');
-          break;
-        default:
-          break;
+      const word = TAG_UID_MAP[sanitized];
+      if (word) {
+        setLastWord(word);
+        setStatus('found');
+        log(`Matched: ${word}`);
+
+        playSound(word);
+      } else {
+        setLastWord('');
+        setStatus('found');
+        log(`Unknown tag: ${sanitized}`);
       }
     },
     [playSound, log],
   );
-
-  const extractText = React.useCallback((records: TagRecord[] | undefined) => {
-    if (!Array.isArray(records)) return '';
-
-    for (const record of records) {
-      const type = record?.type;
-      const isTextRecord =
-        record?.tnf === Ndef.TNF_WELL_KNOWN &&
-        (type === Ndef.RTD_TEXT ||
-          (Array.isArray(type) &&
-            type.length === Ndef.RTD_BYTES_TEXT.length &&
-            type.every(
-              (value, index) => value === Ndef.RTD_BYTES_TEXT[index],
-            )));
-
-      if (!isTextRecord || !Array.isArray(record?.payload)) continue;
-
-      try {
-        return String((Ndef as any).text.decodePayload(record.payload));
-      } catch {
-        continue;
-      }
-    }
-
-    return '';
-  }, []);
 
   const doOneScan = React.useCallback(async (): Promise<boolean> => {
     try {
@@ -131,16 +112,12 @@ export default function LearnTab8() {
       const tag = await NfcManager.getTag();
       console.log('[NFC] tag=', JSON.stringify(tag, null, 2));
 
-      if (tag?.ndefMessage) {
-        const word = extractText(tag.ndefMessage);
-        if (word) {
-          await handleVocabWord(word);
-          return true;
-        }
-        log('No text payload');
-      } else {
-        log('No NDEF message');
+      const tagId: string | undefined = tag?.id;
+      if (tagId) {
+        await handleTagId(tagId);
+        return true;
       }
+      log('No tag ID');
       return false;
     } catch (error) {
       log(`Scan error: ${error}`);
@@ -150,7 +127,7 @@ export default function LearnTab8() {
         await NfcManager.cancelTechnologyRequest();
       } catch {}
     }
-  }, [extractText, handleVocabWord, log]);
+  }, [handleTagId, log]);
 
   const stopScanLoop = React.useCallback(() => {
     scanningRef.current = false;
@@ -234,7 +211,7 @@ export default function LearnTab8() {
   }, [loadSounds, log, startScanLoop, stopScanLoop]);
 
   const isScanning = status === 'scanning';
-  const hasCard = lastWord !== '';
+  const hasCard = lastTagId !== '';
 
   return (
     <ThemedView
@@ -302,18 +279,32 @@ export default function LearnTab8() {
             gap: 6,
           }}
         >
-          <ThemedText style={{ fontSize: 12, opacity: 0.5 }}>
-            Last card
-          </ThemedText>
+          <ThemedText style={{ fontSize: 12, opacity: 0.5 }}>Tag ID</ThemedText>
           <ThemedText
             style={{
-              fontSize: 28,
-              fontWeight: '700',
-              textTransform: 'capitalize',
+              fontSize: 16,
+              fontWeight: '600',
+              fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+              opacity: 0.8,
             }}
           >
-            {lastWord}
+            {lastTagId}
           </ThemedText>
+          {lastWord ? (
+            <ThemedText
+              style={{
+                fontSize: 28,
+                fontWeight: '700',
+                textTransform: 'capitalize',
+              }}
+            >
+              {lastWord}
+            </ThemedText>
+          ) : (
+            <ThemedText style={{ fontSize: 13, opacity: 0.45 }}>
+              Unknown tag
+            </ThemedText>
+          )}
         </ThemedView>
       )}
 
