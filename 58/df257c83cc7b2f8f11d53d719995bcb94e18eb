@@ -1,0 +1,25 @@
+components/learn-tabs/tab-8.tsx
+  s_fef3f16d1ddc90::t_330f810ae1eabb 23,29-32,34-35,49,51,53,60,62,64,72,94,125-126,128,131-133,135,137,140,142-143,145,150-154,198,204,217,227
+  s_fef3f16d1ddc90::t_e5d8a0c8b86f14 349-358
+  s_fef3f16d1ddc90::t_895e4573896737 325-326,328-332,336,340-343,345-347,361,363-367,370-388
+  s_fef3f16d1ddc90::t_491459866503db 6,17-18,20,26-27,123-124,127,129-130,134,136,138-139,141,144,146-149,155-191,225,239-244,250,252-258
+  s_fef3f16d1ddc90::t_632e0402f6dc1b 272,312,327,333-335,337-339,344
+android/app/build.gradle
+  s_fef3f16d1ddc90::t_c5a058a6f440f3 116-118
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "58df257c83cc7b2f8f11d53d719995bcb94e18eb",
+  "prompts": {},
+  "sessions": {
+    "s_fef3f16d1ddc90": {
+      "agent_id": {
+        "tool": "github-copilot",
+        "id": "f2d46127-a630-4be6-a409-26e41e35c2d5",
+        "model": "gpt-5.3-codex"
+      },
+      "human_author": "Abdullah Al Muzaki <aamuzakii@gmail.com>"
+    }
+  }
+}
