@@ -1,16 +1,39 @@
 import React from 'react';
 
-import { Platform } from 'react-native';
+import {
+  Alert,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  TextInput,
+} from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import NfcManager, { NfcTech } from 'react-native-nfc-manager';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 
 const SCAN_LOOP_DELAY_MS = 600;
+const STORAGE_KEY = 'nfc_vocab_map';
 
-// --- Tag UID → card name mapping (edit these with your real tag IDs) ---
+// Static requires for Metro bundler compatibility — add your audio files here
+const AUDIO_SOURCES: Record<string, any> = {
+  wolf: require('../../audio/wolf.mp3'),
+  bucket: require('../../audio/bucket.mp3'),
+  jibal: require('../../audio/jibal.mp3'),
+  siang: require('../../audio/siang.mp3'),
+  jalan: require('../../audio/jalan.mp3'),
+  katak: require('../../audio/katak.mp3'),
+  lalat: require('../../audio/lalat.mp3'),
+  raja: require('../../audio/raja.mp3'),
+  semut: require('../../audio/semut.mp3'),
+  ular: require('../../audio/ular.mp3'),
+};
+
+// --- Tag UID → card name mapping (defaults, editable from UI) ---
 const TAG_UID_MAP: Record<string, string> = {
   '040DF8CAC12191': 'wolf',
   '040DF8CAC12190': 'bucket',
@@ -26,6 +49,19 @@ export default function LearnTab8() {
     'idle',
   );
 
+  // Editor UI state
+  const [showEditor, setShowEditor] = React.useState(false);
+  const [editorTagId, setEditorTagId] = React.useState('');
+  const [editorWord, setEditorWord] = React.useState('');
+  const [editingEntry, setEditingEntry] = React.useState<string | null>(null);
+  const [editingEntryVal, setEditingEntryVal] = React.useState('');
+
+  // Use a ref so the scan loop never captures a stale closure
+  const tagMapRef = React.useRef<Record<string, string>>({ ...TAG_UID_MAP });
+  const [tagMapState, setTagMapState] = React.useState<Record<string, string>>(
+    { ...TAG_UID_MAP },
+  );
+
   const soundsRef = React.useRef<Map<string, any>>(new Map());
   const scanningRef = React.useRef(false);
   const cancelledRef = React.useRef(false);
@@ -35,38 +71,40 @@ export default function LearnTab8() {
     console.log(`[NFC] ${msg}`);
   }, []);
 
-  const loadSounds = React.useCallback(async () => {
-    try {
-      const mod: any = await import('expo-av');
-      const Audio = mod?.Audio;
-      if (!Audio) return;
+  // ---------- Sound loading (looks up AUDIO_SOURCES for each word) ----------
+  const loadSounds = React.useCallback(
+    async (words: string[]) => {
+      try {
+        const mod: any = await import('expo-av');
+        const Audio = mod?.Audio;
+        if (!Audio) return;
 
-      await Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
+        await Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
 
-      const pairs: [string, any][] = [
-        ['wolf', require('../../audio/wolf.mp3')],
-        ['bucket', require('../../audio/bucket.mp3')],
-        ['jibal', require('../../audio/jibal.mp3')],
-        ['siang', require('../../audio/siang.mp3')],
-      ];
-
-      const map = new Map<string, any>();
-      for (const [key, src] of pairs) {
-        try {
-          const { sound } = await Audio.Sound.createAsync(src, {
-            shouldPlay: false,
-          });
-          map.set(key, sound);
-          log(`Loaded: ${key}.mp3`);
-        } catch {
-          log(`Failed to load: ${key}.mp3`);
+        const map = new Map<string, any>();
+        for (const word of words) {
+          const src = AUDIO_SOURCES[word];
+          if (!src) {
+            log(`No bundled audio for: ${word}.mp3 — skipping`);
+            continue;
+          }
+          try {
+            const { sound } = await Audio.Sound.createAsync(src, {
+              shouldPlay: false,
+            });
+            map.set(word, sound);
+            log(`Loaded: ${word}.mp3`);
+          } catch {
+            log(`Failed to load: ${word}.mp3`);
+          }
         }
+        soundsRef.current = map;
+      } catch {
+        log('Failed to load audio system');
       }
-      soundsRef.current = map;
-    } catch {
-      log('Failed to load audio system');
-    }
-  }, [log]);
+    },
+    [log],
+  );
 
   const playSound = React.useCallback(
     async (key: string) => {
@@ -82,6 +120,7 @@ export default function LearnTab8() {
     [log],
   );
 
+  // ---------- Tag handling (reads from ref — never stale) ----------
   const handleTagId = React.useCallback(
     async (tagId: string) => {
       const sanitized = tagId.trim().toUpperCase();
@@ -90,7 +129,7 @@ export default function LearnTab8() {
       setLastTagId(sanitized);
       log(`Tag ID: ${sanitized}`);
 
-      const word = TAG_UID_MAP[sanitized];
+      const word = tagMapRef.current[sanitized];
       if (word) {
         setLastWord(word);
         setStatus('found');
@@ -101,11 +140,83 @@ export default function LearnTab8() {
         setLastWord('');
         setStatus('found');
         log(`Unknown tag: ${sanitized}`);
+
+        // Prompt to assign a word
+        Alert.alert(
+          'New Tag Detected',
+          `Tag ID: ${sanitized}\n\nOpen editor to assign a word?`,
+          [
+            { text: 'Ignore', style: 'cancel' },
+            {
+              text: 'Open Editor',
+              onPress: () => {
+                setEditorTagId(sanitized);
+                setEditorWord('');
+                setShowEditor(true);
+              },
+            },
+          ],
+        );
       }
     },
     [playSound, log],
   );
 
+  // ---------- Persistence ----------
+  const persistMap = React.useCallback(
+    async (map: Record<string, string>) => {
+      try {
+        await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(map));
+      } catch {}
+    },
+    [],
+  );
+
+  const applyAndPersist = React.useCallback(
+    async (updated: Record<string, string>) => {
+      tagMapRef.current = updated;
+      setTagMapState({ ...updated });
+      await persistMap(updated);
+      // Reload sounds for all words in the updated map
+      await loadSounds(Object.values(updated));
+    },
+    [persistMap, loadSounds],
+  );
+
+  const addOrUpdateEntry = React.useCallback(
+    async (tagId: string, word: string) => {
+      const trimmed = word.trim().toLowerCase();
+      if (!tagId || !trimmed) return;
+      const updated = { ...tagMapState, [tagId]: trimmed };
+      await applyAndPersist(updated);
+      setEditorTagId('');
+      setEditorWord('');
+    },
+    [tagMapState, applyAndPersist],
+  );
+
+  const deleteEntry = React.useCallback(
+    async (tagId: string) => {
+      const updated = { ...tagMapState };
+      delete updated[tagId];
+      await applyAndPersist(updated);
+    },
+    [tagMapState, applyAndPersist],
+  );
+
+  const updateWordForTag = React.useCallback(
+    async (tagId: string, newWord: string) => {
+      const trimmed = newWord.trim().toLowerCase();
+      if (!trimmed) return;
+      const updated = { ...tagMapState, [tagId]: trimmed };
+      await applyAndPersist(updated);
+      setEditingEntry(null);
+      setEditingEntryVal('');
+    },
+    [tagMapState, applyAndPersist],
+  );
+
+  // ---------- NFC scan loop (unchanged logic) ----------
   const doOneScan = React.useCallback(async (): Promise<boolean> => {
     try {
       await NfcManager.requestTechnology(NfcTech.Ndef);
@@ -159,6 +270,7 @@ export default function LearnTab8() {
     void loop();
   }, [doOneScan, log]);
 
+  // ---------- Init ----------
   React.useEffect(() => {
     let cancelled = false;
 
@@ -188,7 +300,25 @@ export default function LearnTab8() {
           return;
         }
 
-        await loadSounds();
+        // Load persisted overrides on top of defaults
+        let merged = { ...TAG_UID_MAP };
+        try {
+          const raw = await AsyncStorage.getItem(STORAGE_KEY);
+          if (raw) {
+            const parsed = JSON.parse(raw) as Record<string, string>;
+            if (typeof parsed === 'object' && parsed !== null) {
+              merged = { ...merged, ...parsed };
+            }
+          }
+        } catch {}
+        tagMapRef.current = merged;
+        setTagMapState({ ...merged });
+
+        // Load sounds for all words
+        if (!cancelled) {
+          await loadSounds(Object.values(merged));
+        }
+        if (cancelled) return;
 
         if (!cancelled) {
           void startScanLoop();
@@ -212,6 +342,7 @@ export default function LearnTab8() {
 
   const isScanning = status === 'scanning';
   const hasCard = lastTagId !== '';
+  const entries = Object.entries(tagMapState);
 
   return (
     <ThemedView
@@ -327,6 +458,240 @@ export default function LearnTab8() {
           </ThemedText>
         </ThemedView>
       )}
+
+      {/* Edit button */}
+      <Pressable
+        onPress={() => setShowEditor(true)}
+        style={({ pressed }) => ({
+          opacity: pressed ? 0.6 : 1,
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 6,
+          paddingVertical: 10,
+          paddingHorizontal: 20,
+          borderRadius: 12,
+          backgroundColor: 'rgba(127,127,127,0.08)',
+          borderWidth: 1,
+          borderColor: 'rgba(127,127,127,0.2)',
+        })}
+      >
+        <Ionicons name="pencil-outline" size={18} color="rgba(127,127,127,0.7)" />
+        <ThemedText style={{ fontSize: 14, opacity: 0.6 }}>
+          Edit Vocab Cards ({entries.length})
+        </ThemedText>
+      </Pressable>
+
+      {/* ---------- Editor Modal ---------- */}
+      <Modal
+        visible={showEditor}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setShowEditor(false)}
+      >
+        <ThemedView
+          style={{
+            flex: 1,
+            paddingTop: 60,
+            paddingHorizontal: 20,
+            paddingBottom: 30,
+          }}
+        >
+          {/* Header */}
+          <ThemedView
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: 20,
+            }}
+          >
+            <ThemedText style={{ fontSize: 20, fontWeight: '700' }}>
+              Edit Vocab Cards
+            </ThemedText>
+            <Pressable onPress={() => setShowEditor(false)}>
+              <Ionicons name="close-circle" size={30} color="rgba(127,127,127,0.6)" />
+            </Pressable>
+          </ThemedView>
+
+          {/* Add new entry */}
+          <ThemedView
+            style={{
+              flexDirection: 'row',
+              gap: 8,
+              marginBottom: 20,
+              alignItems: 'center',
+            }}
+          >
+            <TextInput
+              placeholder="Tag ID (e.g. 530DDC...)"
+              placeholderTextColor="rgba(127,127,127,0.4)"
+              value={editorTagId}
+              onChangeText={setEditorTagId}
+              autoCapitalize="characters"
+              style={{
+                flex: 1,
+                fontSize: 13,
+                fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+                paddingVertical: 8,
+                paddingHorizontal: 10,
+                borderRadius: 8,
+                backgroundColor: 'rgba(127,127,127,0.08)',
+                color: '#fff',
+                borderWidth: 1,
+                borderColor: 'rgba(127,127,127,0.2)',
+              }}
+            />
+            <TextInput
+              placeholder="Word"
+              placeholderTextColor="rgba(127,127,127,0.4)"
+              value={editorWord}
+              onChangeText={setEditorWord}
+              autoCapitalize="none"
+              style={{
+                flex: 1,
+                fontSize: 14,
+                paddingVertical: 8,
+                paddingHorizontal: 10,
+                borderRadius: 8,
+                backgroundColor: 'rgba(127,127,127,0.08)',
+                color: '#fff',
+                borderWidth: 1,
+                borderColor: 'rgba(127,127,127,0.2)',
+              }}
+            />
+            <Pressable
+              onPress={() => {
+                if (editorTagId && editorWord) {
+                  void addOrUpdateEntry(
+                    editorTagId.trim().toUpperCase(),
+                    editorWord,
+                  );
+                }
+              }}
+              style={({ pressed }) => ({
+                opacity: pressed ? 0.6 : 1,
+                padding: 8,
+              })}
+            >
+              <Ionicons name="add-circle" size={28} color="rgba(59,130,246,0.8)" />
+            </Pressable>
+          </ThemedView>
+
+          {/* List of entries */}
+          <ScrollView style={{ flex: 1 }}>
+            {entries.length === 0 && (
+              <ThemedText
+                style={{
+                  opacity: 0.4,
+                  textAlign: 'center',
+                  marginTop: 40,
+                }}
+              >
+                No cards. Tap a new NFC tag or add one above.
+              </ThemedText>
+            )}
+            {entries.map(([tagId, word]) => (
+              <ThemedView
+                key={tagId}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 8,
+                  paddingVertical: 10,
+                  paddingHorizontal: 12,
+                  borderRadius: 10,
+                  backgroundColor: 'rgba(127,127,127,0.04)',
+                  borderWidth: 1,
+                  borderColor: 'rgba(127,127,127,0.1)',
+                  marginBottom: 8,
+                }}
+              >
+                {/* Tag ID */}
+                <ThemedText
+                  numberOfLines={1}
+                  style={{
+                    flex: 1,
+                    fontSize: 11,
+                    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+                    opacity: 0.7,
+                  }}
+                >
+                  {tagId}
+                </ThemedText>
+
+                {/* Arrow */}
+                <Ionicons
+                  name="arrow-forward"
+                  size={14}
+                  color="rgba(127,127,127,0.35)"
+                />
+
+                {/* Word (inline editable) */}
+                {editingEntry === tagId ? (
+                  <TextInput
+                    value={editingEntryVal}
+                    onChangeText={setEditingEntryVal}
+                    autoCapitalize="none"
+                    autoFocus
+                    style={{
+                      fontSize: 15,
+                      fontWeight: '600',
+                      paddingVertical: 4,
+                      paddingHorizontal: 8,
+                      borderRadius: 6,
+                      backgroundColor: 'rgba(59,130,246,0.1)',
+                      color: '#fff',
+                      minWidth: 80,
+                    }}
+                    onSubmitEditing={() => {
+                      void updateWordForTag(tagId, editingEntryVal);
+                    }}
+                    onBlur={() => {
+                      if (editingEntryVal.trim()) {
+                        void updateWordForTag(tagId, editingEntryVal);
+                      } else {
+                        setEditingEntry(null);
+                      }
+                    }}
+                  />
+                ) : (
+                  <Pressable
+                    onPress={() => {
+                      setEditingEntry(tagId);
+                      setEditingEntryVal(word);
+                    }}
+                  >
+                    <ThemedText
+                      style={{
+                        fontSize: 15,
+                        fontWeight: '600',
+                        textTransform: 'capitalize',
+                      }}
+                    >
+                      {word}
+                    </ThemedText>
+                  </Pressable>
+                )}
+
+                {/* Delete */}
+                <Pressable
+                  onPress={() => deleteEntry(tagId)}
+                  style={({ pressed }) => ({
+                    opacity: pressed ? 0.6 : 1,
+                    padding: 4,
+                  })}
+                >
+                  <Ionicons
+                    name="trash-outline"
+                    size={18}
+                    color="rgba(239,68,68,0.65)"
+                  />
+                </Pressable>
+              </ThemedView>
+            ))}
+          </ScrollView>
+        </ThemedView>
+      </Modal>
     </ThemedView>
   );
 }
