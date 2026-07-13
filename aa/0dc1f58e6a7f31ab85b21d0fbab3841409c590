@@ -1,0 +1,21 @@
+app/(tabs)/index.tsx
+  s_942e1aaffb73ae::t_848af249a76c10 469-474
+components/wellbeing.tsx
+  s_942e1aaffb73ae::t_7ea486645d2c76 29
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.12",
+  "base_commit_sha": "aa0dc1f58e6a7f31ab85b21d0fbab3841409c590",
+  "prompts": {},
+  "sessions": {
+    "s_942e1aaffb73ae": {
+      "agent_id": {
+        "tool": "github-copilot",
+        "id": "d9f01406-a6ae-4aa3-8421-cbb338436d97",
+        "model": "gpt-5.3-codex"
+      },
+      "human_author": "Abdullah Al Muzaki <aamuzakii@gmail.com>"
+    }
+  }
+}
