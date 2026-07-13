@@ -1,0 +1,42 @@
+lib/resetMark.ts
+  s_942e1aaffb73ae::t_d0df0238e2b588 13
+  s_942e1aaffb73ae::t_ed405dd363a704 89-103
+  s_942e1aaffb73ae::t_d1b45998583a04 657-674,685
+  s_942e1aaffb73ae::t_5bdfff54e89665 699,743-759
+  s_942e1aaffb73ae::t_a029f15e011985 653-656,675-678,682-684,686-690,692-693,703-704,707,716,718-719,727,729-736,739,741-742,760-761,766-779,781-788
+  s_942e1aaffb73ae::t_a3a10f6851b97d 652
+  s_942e1aaffb73ae::t_3bc1b68e8bf8db 679-681
+  s_942e1aaffb73ae::t_d17a3c2e9243d8 691
+  s_942e1aaffb73ae::t_67ecef4bd7db24 694-698
+  s_942e1aaffb73ae::t_c204832514b875 700-702
+  s_942e1aaffb73ae::t_8c2fec6a74e526 705-706
+  s_942e1aaffb73ae::t_17ca4989a62947 708-710,713-715
+  s_942e1aaffb73ae::t_0200f006c9bd15 717
+  s_942e1aaffb73ae::t_72c035503d3591 720-722,724-726
+  s_942e1aaffb73ae::t_330e4cb0aa4f2b 728
+  s_942e1aaffb73ae::t_467ff9d4cf6c94 737-738
+  s_942e1aaffb73ae::t_481eef46fa64ea 740
+  s_942e1aaffb73ae::t_d20b96bde847cc 762-765
+  s_942e1aaffb73ae::t_f5315fb39bec01 780
+app/backgroundTasks.ts
+  s_942e1aaffb73ae::t_79bd455aa851f0 4
+  s_942e1aaffb73ae::t_b74a3c93ab0ff2 16-29
+components/wellbeing.tsx
+  s_942e1aaffb73ae::t_1d42f458b6112f 7,27,35,37-44,48-51
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.12",
+  "base_commit_sha": "ca715dd35a3f260f0e5112b490e39341653f3ac8",
+  "prompts": {},
+  "sessions": {
+    "s_942e1aaffb73ae": {
+      "agent_id": {
+        "tool": "github-copilot",
+        "id": "d9f01406-a6ae-4aa3-8421-cbb338436d97",
+        "model": "gpt-5.3-codex"
+      },
+      "human_author": "Abdullah Al Muzaki <aamuzakii@gmail.com>"
+    }
+  }
+}
