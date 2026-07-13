@@ -11,6 +11,7 @@ export const LEARN_AKMIL_TAB4_TABLE = 'learn_akmil_tab4';
 export const LEARN_UMDAH_TAB5_TABLE = 'learn_umdah_tab5';
 export const LEARN_NAWAQID_TAB7_TABLE = 'learn_nawaqid_tab7';
 export const QURAN_USAGE_TABLE = 'quran_usage';
+export const PINNED_YT_TABLE = 'pinned_yt';
 
 export const logSqliteDb = async (db: any, label = 'sqlite') => {
   try {
@@ -815,4 +816,82 @@ export const clearLearnAkmilTab4Done = async (
   table = LEARN_AKMIL_TAB4_TABLE,
 ) => {
   await execSql(db, `DELETE FROM ${table}`);
+};
+
+// Pinned YT videos — max 3, FIFO queue
+export const ensurePinnedYtTable = async (
+  db: any,
+  table = PINNED_YT_TABLE,
+) => {
+  await execSql(
+    db,
+    `CREATE TABLE IF NOT EXISTS ${table} (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      item_key TEXT NOT NULL UNIQUE,
+      title TEXT NOT NULL,
+      url TEXT NOT NULL,
+      pinned_ms INTEGER NOT NULL
+    )`,
+  );
+};
+
+export const loadPinnedYt = async (
+  db: any,
+  table = PINNED_YT_TABLE,
+): Promise<{ itemKey: string; title: string; url: string }[]> => {
+  await ensurePinnedYtTable(db, table);
+  const res = await execSql(
+    db,
+    `SELECT item_key, title, url FROM ${table} ORDER BY pinned_ms ASC`,
+  );
+  const rows: { itemKey: string; title: string; url: string }[] = [];
+  for (let i = 0; i < (res?.rows?.length ?? 0); i++) {
+    const r = res.rows.item(i);
+    rows.push({
+      itemKey: String(r?.item_key ?? ''),
+      title: String(r?.title ?? ''),
+      url: String(r?.url ?? ''),
+    });
+  }
+  return rows;
+};
+
+export const togglePinnedYt = async (
+  db: any,
+  itemKey: string,
+  title: string,
+  url: string,
+  table = PINNED_YT_TABLE,
+): Promise<boolean> => {
+  await ensurePinnedYtTable(db, table);
+
+  // Check if already pinned
+  const existing = await execSql(
+    db,
+    `SELECT id FROM ${table} WHERE item_key = ? LIMIT 1`,
+    [itemKey],
+  );
+
+  if ((existing?.rows?.length ?? 0) > 0) {
+    // Unpin
+    await execSql(db, `DELETE FROM ${table} WHERE item_key = ?`, [itemKey]);
+    return false; // now unpinned
+  }
+
+  // Pin: enforce max 3 (FIFO — remove oldest)
+  const countRes = await execSql(db, `SELECT COUNT(*) as cnt FROM ${table}`);
+  const cnt = Number(countRes?.rows?.item(0)?.cnt ?? 0);
+  if (cnt >= 3) {
+    await execSql(
+      db,
+      `DELETE FROM ${table} WHERE id = (SELECT id FROM ${table} ORDER BY pinned_ms ASC LIMIT 1)`,
+    );
+  }
+
+  await execSql(
+    db,
+    `INSERT INTO ${table} (item_key, title, url, pinned_ms) VALUES (?, ?, ?, ?)`,
+    [itemKey, title, url, Date.now()],
+  );
+  return true; // now pinned
 };

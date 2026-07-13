@@ -10,6 +10,8 @@ import {
   openAppDb,
   setLearnNawaqidDisplayedTitle,
   setLearnNawaqidProgress,
+  togglePinnedYt,
+  loadPinnedYt,
 } from '@/lib/resetMark';
 import ItemActionsModal from './item-actions-modal';
 
@@ -48,6 +50,7 @@ function LearnItem({
   const [displayedTitle, setDisplayedTitle] = useState<string | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [sliderEditable, setSliderEditable] = useState(false);
+  const [pinned, setPinned] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -62,6 +65,13 @@ function LearnItem({
             await import('@/lib/resetMark');
           const dt = await loadLearnNawaqidDisplayedTitle(db, itemKey);
           if (!cancelled && dt) setDisplayedTitle(dt ?? null);
+        } catch {}
+        // Load pinned state
+        try {
+          const pinnedItems = await loadPinnedYt(db);
+          if (!cancelled) {
+            setPinned(pinnedItems.some((p) => p.itemKey === itemKey));
+          }
         } catch {}
       } catch (e) {
         // ignore
@@ -175,6 +185,24 @@ function LearnItem({
               accessibilityLabel="Open note"
             >
               <ThemedText style={{ opacity: 0.9, fontSize: 14 }}>📝</ThemedText>
+            </Pressable>
+            <Pressable
+              onPress={async () => {
+                const db2 = openAppDb();
+                const nowPinned = await togglePinnedYt(
+                  db2,
+                  itemKey,
+                  displayedTitle ?? item.title,
+                  item.url,
+                );
+                setPinned(nowPinned);
+              }}
+              style={{ padding: 8, marginLeft: 4, alignSelf: 'flex-start' }}
+              accessibilityLabel={pinned ? 'Unpin video' : 'Pin video'}
+            >
+              <ThemedText style={{ opacity: pinned ? 1 : 0.45, fontSize: 14 }}>
+                📌
+              </ThemedText>
             </Pressable>
 
             <ItemActionsModal

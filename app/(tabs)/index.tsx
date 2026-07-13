@@ -16,6 +16,7 @@ import { useRouter } from 'expo-router';
 
 import ParallaxScrollView from '@/components/parallax-scroll-view';
 import Pie from '@/components/pie';
+import { QuickLinks } from '@/components/quick-links';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import Todo from '@/components/todo';
@@ -39,6 +40,7 @@ import {
   markQuranUsageSynced,
   getQuranUsageForDate,
   getQuranUsageForDateRange,
+  loadPinnedYt,
 } from '@/lib/resetMark';
 import { fetchChannelVideoUrls } from '@/lib/youtubeApi';
 import {
@@ -96,6 +98,9 @@ export default function HomeScreen() {
     useState<string>('Not registered');
   const [combinedQuranWeek, setCombinedQuranWeek] = useState<
     { day: string; date: string; dbMinutes: number; nativeMinutes: number }[]
+  >([]);
+  const [pinnedYt, setPinnedYt] = useState<
+    { itemKey: string; title: string; url: string }[]
   >([]);
 
   const DEFAULT_TODOS: TodoItem[] = [
@@ -456,6 +461,31 @@ export default function HomeScreen() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Load pinned YT
+  const refreshPinnedYt = async () => {
+    try {
+      const items = await loadPinnedYt(db);
+      setPinnedYt(items);
+    } catch (e) {
+      console.log('Failed to load pinned YT:', e);
+    }
+  };
+
+  useEffect(() => {
+    refreshPinnedYt();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Reload pinned YT when app comes to foreground
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state !== 'active') return;
+      refreshPinnedYt();
+    });
+    return () => sub.remove();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Register background task on component mount
   useEffect(() => {
     const setupBackgroundTask = async () => {
@@ -663,104 +693,50 @@ export default function HomeScreen() {
         </ThemedView>
       ) : null}
       <Pie />
-      <ThemedView
-        style={{
-          flexDirection: 'row',
-          justifyContent: 'center',
-          flexWrap: 'wrap',
-          gap: 8,
-          marginTop: 10,
-          marginBottom: 4,
-        }}
-      >
-        <Pressable
-          onPress={() =>
-            router.push({
-              pathname: '/webview',
-              params: {
-                url: 'https://www.youtube.com/watch?v=bNyUyrR0PHo',
-                title: 'AR',
-              },
-            })
-          }
+      {/* around here */}
+      {pinnedYt.length > 0 ? (
+        <ThemedView
           style={{
-            paddingHorizontal: 10,
-            paddingVertical: 6,
-            borderRadius: 999,
-            borderWidth: 1,
-            borderColor: 'rgba(127,127,127,0.25)',
+            flexDirection: 'row',
+            justifyContent: 'center',
+            flexWrap: 'wrap',
+            gap: 8,
+            marginTop: 10,
+            marginBottom: 4,
           }}
-          accessibilityRole="button"
         >
-          <ThemedText style={{ fontSize: 12 }}>🇸🇦 AR</ThemedText>
-        </Pressable>
-
-        <Pressable
-          onPress={() =>
-            router.push({
-              pathname: '/webview',
-              params: {
-                url: 'https://www.youtube.com/watch?v=YDvsBbKfLPA',
-                title: 'UK',
-              },
-            })
-          }
-          style={{
-            paddingHorizontal: 10,
-            paddingVertical: 6,
-            borderRadius: 999,
-            borderWidth: 1,
-            borderColor: 'rgba(127,127,127,0.25)',
-          }}
-          accessibilityRole="button"
-        >
-          <ThemedText style={{ fontSize: 12 }}>🇬🇧 UK</ThemedText>
-        </Pressable>
-
-        <Pressable
-          onPress={() =>
-            router.push({
-              pathname: '/webview',
-              params: {
-                url: 'https://www.youtube.com/watch?v=vOTiJkg1voo',
-                title: 'AU',
-              },
-            })
-          }
-          style={{
-            paddingHorizontal: 10,
-            paddingVertical: 6,
-            borderRadius: 999,
-            borderWidth: 1,
-            borderColor: 'rgba(127,127,127,0.25)',
-          }}
-          accessibilityRole="button"
-        >
-          <ThemedText style={{ fontSize: 12 }}>🇦🇺 AU</ThemedText>
-        </Pressable>
-
-        <Pressable
-          onPress={() =>
-            router.push({
-              pathname: '/webview',
-              params: {
-                url: 'https://www.youtube.com/watch?v=vTVuuJ5xBco',
-                title: 'CN',
-              },
-            })
-          }
-          style={{
-            paddingHorizontal: 10,
-            paddingVertical: 6,
-            borderRadius: 999,
-            borderWidth: 1,
-            borderColor: 'rgba(127,127,127,0.25)',
-          }}
-          accessibilityRole="button"
-        >
-          <ThemedText style={{ fontSize: 12 }}>🇨🇳 CN</ThemedText>
-        </Pressable>
-      </ThemedView>
+          {pinnedYt.map((p) => (
+            <Pressable
+              key={p.itemKey}
+              onPress={() =>
+                router.push({
+                  pathname: '/webview',
+                  params: { url: p.url, title: `📌 ${p.title}` },
+                })
+              }
+              style={{
+                paddingHorizontal: 10,
+                paddingVertical: 6,
+                borderRadius: 999,
+                borderWidth: 1,
+                borderColor: 'rgba(10,126,164,0.5)',
+                backgroundColor: 'rgba(10,126,164,0.12)',
+              }}
+              accessibilityRole="button"
+            >
+              <ThemedText style={{ fontSize: 12 }}>📌 {p.title}</ThemedText>
+            </Pressable>
+          ))}
+        </ThemedView>
+      ) : null}
+      <QuickLinks
+        links={[
+          { label: '🇸🇦 AR', url: 'https://www.youtube.com/watch?v=bNyUyrR0PHo' },
+          { label: '🇬🇧 UK', url: 'https://www.youtube.com/watch?v=YDvsBbKfLPA' },
+          { label: '🇦🇺 AU', url: 'https://www.youtube.com/watch?v=vOTiJkg1voo' },
+          { label: '🇨🇳 CN', url: 'https://www.youtube.com/watch?v=vTVuuJ5xBco' },
+        ]}
+      />
       {/* <Button title="Fetch YT channel videos Log" onPress={handleFetchChannelVideos} /> */}
       <Todo
         todos={todos}
