@@ -692,17 +692,16 @@ export default function HomeScreen() {
           </ThemedView>
         </ThemedView>
       ) : null}
-      <Pie />
-      {/* around here */}
+      {/* Pie below is to show tracked upwork time, but we have server billing issue, so just comment for now */}
+      {/* <Pie /> */}
       {pinnedYt.length > 0 ? (
         <ThemedView
           style={{
             flexDirection: 'row',
-            justifyContent: 'center',
-            flexWrap: 'wrap',
-            gap: 8,
+            gap: 6,
             marginTop: 10,
             marginBottom: 4,
+            paddingHorizontal: 10,
           }}
         >
           {pinnedYt.map((p) => (
@@ -715,16 +714,18 @@ export default function HomeScreen() {
                 })
               }
               style={{
-                paddingHorizontal: 10,
-                paddingVertical: 6,
-                borderRadius: 999,
+                paddingHorizontal: 14,
+                paddingVertical: 8,
+                borderRadius: 6,
                 borderWidth: 1,
-                borderColor: 'rgba(10,126,164,0.5)',
-                backgroundColor: 'rgba(10,126,164,0.12)',
+                borderColor: 'rgba(127,127,127,0.2)',
+                backgroundColor: 'rgba(127,127,127,0.08)',
+                flex: 1,
+                minWidth: 0,
               }}
               accessibilityRole="button"
             >
-              <ThemedText style={{ fontSize: 12 }}>📌 {p.title}</ThemedText>
+              <ThemedText style={{ fontSize: 12 }} numberOfLines={1}>📌 {p.title}</ThemedText>
             </Pressable>
           ))}
         </ThemedView>
@@ -735,6 +736,7 @@ export default function HomeScreen() {
           { label: '🇬🇧 UK', url: 'https://www.youtube.com/watch?v=YDvsBbKfLPA' },
           { label: '🇦🇺 AU', url: 'https://www.youtube.com/watch?v=vOTiJkg1voo' },
           { label: '🇨🇳 CN', url: 'https://www.youtube.com/watch?v=vTVuuJ5xBco' },
+          { label: 'Rodja', url: 'https://www.youtube.com/watch?v=Yrbe4KqlejM' },
         ]}
       />
       {/* <Button title="Fetch YT channel videos Log" onPress={handleFetchChannelVideos} /> */}
