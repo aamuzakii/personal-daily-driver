@@ -1,0 +1,24 @@
+lib/resetMark.ts
+  s_7f1eb5696a5023::t_dfcd6baa587aee 14
+components/learn-list.tsx
+  s_7f1eb5696a5023::t_dfac68adf0bdd7 13-14
+  s_7f1eb5696a5023::t_bd0490ac4d677b 189-206
+  s_7f1eb5696a5023::t_32271f03859d89 53
+  s_7f1eb5696a5023::t_099256743e510c 69-75
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.12",
+  "base_commit_sha": "9b475d7f0897def8a28a89afff9a8eff6f3ecab7",
+  "prompts": {},
+  "sessions": {
+    "s_7f1eb5696a5023": {
+      "agent_id": {
+        "tool": "github-copilot",
+        "id": "f83b49ad-6161-4fc7-ab1e-c6b6b00f0bf8",
+        "model": "gpt-5.3-codex"
+      },
+      "human_author": "Abdullah Al Muzaki <aamuzakii@gmail.com>"
+    }
+  }
+}
