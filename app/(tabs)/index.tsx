@@ -219,7 +219,6 @@ export default function HomeScreen() {
     setLoadingUsage(true);
     setUsageError(null);
     try {
-      console.log('[quran-week] loadQuranWeek: start');
       // Last 7 days including today
       const today = new Date();
       const dayLabels: string[] = [];
@@ -235,15 +234,12 @@ export default function HomeScreen() {
         dayLabels.push(shortDays[jsDay]);
         dayNames.push(fullDays[jsDay]);
       }
-      console.log('[quran-week] loadQuranWeek: dates range', dates[0], 'to', dates[6]);
 
       // Load both sources in parallel
-      console.log('[quran-week] loadQuranWeek: fetching native + db...');
       const [nativeWeek, dbRows] = await Promise.all([
         getQuranWeekBreakdown().catch((e) => { console.log('[quran-week] getQuranWeekBreakdown failed:', e); return null; }),
         getQuranUsageForDateRange(db, dates[0], dates[6]),
       ]);
-      console.log('[quran-week] loadQuranWeek: nativeWeek=', nativeWeek, 'dbRows count=', dbRows?.length);
 
       setQuranWeek(nativeWeek);
 
@@ -260,11 +256,9 @@ export default function HomeScreen() {
         dbMinutes: dbMap.get(date) ?? 0,
         nativeMinutes: nativeWeek ? (nativeWeek as any)[dayNames[i]] ?? 0 : 0,
       }));
-      console.log('[quran-week] loadQuranWeek: combined result', combined);
 
       setCombinedQuranWeek(combined);
     } catch (e: any) {
-      console.log('[quran-week] loadQuranWeek: FAILED', { e, message: e?.message, stack: e?.stack });
       setUsageError(e?.message ?? 'Failed to load Quran week');
       setQuranWeek(null);
       setCombinedQuranWeek([]);
@@ -409,13 +403,10 @@ export default function HomeScreen() {
     }
 
     const today = toYmd(new Date());
-    console.log('[quran-usage] Starting daily tracking, today=', today, 'minutes=', quranMinutes);
 
     const saveDailyUsage = async () => {
       try {
-        console.log('[quran-usage] saveDailyUsage: calling saveQuranUsage with', { db: !!db, minutes: quranMinutes, today });
         await saveQuranUsage(db, quranMinutes, today);
-        console.log('[quran-usage] saveDailyUsage: SUCCESS for', today, quranMinutes, 'minutes');
       } catch (err) {
         console.log('[quran-usage] saveDailyUsage: FAILED', { err, message: (err as any)?.message, stack: (err as any)?.stack });
       }
@@ -434,26 +425,19 @@ export default function HomeScreen() {
   useEffect(() => {
     const sendDailyToApi = async () => {
       try {
-        console.log('[quran-api] sendDailyToApi: start');
         const today = toYmd(new Date());
-        console.log('[quran-api] sendDailyToApi: today=', today, 'db=', !!db);
         const todayMinutes = await getQuranUsageForDate(db, today);
-        console.log('[quran-api] sendDailyToApi: todayMinutes=', todayMinutes);
         
         if (todayMinutes > 0) {
           const url = `https://home-dashboard-lac.vercel.app/api/quran/${todayMinutes}/210`;
-          console.log('[quran-api] sendDailyToApi: fetching', url);
           const response = await fetch(url);
-          console.log('[quran-api] sendDailyToApi: response status=', response.status, 'ok=', response.ok);
           if (response.ok) {
             await markQuranUsageSynced(db);
-            console.log('[quran-api] sendDailyToApi: synced successfully');
           }
         } else {
-          console.log('[quran-api] sendDailyToApi: skipping, todayMinutes <= 0');
         }
       } catch (err) {
-        console.log('[quran-api] sendDailyToApi: FAILED', { err, message: (err as any)?.message, stack: (err as any)?.stack });
+        console.error('[quran-api] sendDailyToApi: FAILED', { err, message: (err as any)?.message, stack: (err as any)?.stack });
       }
     };
 

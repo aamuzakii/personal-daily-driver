@@ -661,7 +661,6 @@ export const ensureQuranUsageTable = async (
     for (let i = 0; i < (info?.rows?.length ?? 0); i++) {
       cols.push(String(info.rows.item(i).name ?? ''));
     }
-    console.log('[quran-db] ensureQuranUsageTable: existing columns', cols);
 
     // If table exists but missing 'date' column (old schema), drop and recreate
     if (cols.length > 0 && !cols.includes('date')) {
@@ -682,7 +681,6 @@ export const ensureQuranUsageTable = async (
       synced INTEGER DEFAULT 0
     )`,
   );
-  console.log('[quran-db] ensureQuranUsageTable: table ready');
 };
 
 export const saveQuranUsage = async (
@@ -693,11 +691,9 @@ export const saveQuranUsage = async (
 ) => {
   const date = dateStr || toYmd(new Date());
   const now = Date.now();
-  console.log('[quran-db] saveQuranUsage: start', { date, minutes, now, db: !!db, table });
 
   // Ensure table exists first (avoid race condition)
   await ensureQuranUsageTable(db, table);
-  console.log('[quran-db] saveQuranUsage: table ensured');
 
   // Overwrite with latest value (native module returns total, not delta)
   await execSql(
@@ -710,7 +706,6 @@ export const saveQuranUsage = async (
        synced = 0`,
     [date, minutes, now],
   );
-  console.log('[quran-db] saveQuranUsage: DONE', { date, minutes });
 };
 
 export const markQuranUsageSynced = async (
