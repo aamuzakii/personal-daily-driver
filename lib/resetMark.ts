@@ -10,6 +10,7 @@ export const LEARN_SURAH_TAB3_TABLE = 'learn_surah_tab3';
 export const LEARN_AKMIL_TAB4_TABLE = 'learn_akmil_tab4';
 export const LEARN_UMDAH_TAB5_TABLE = 'learn_umdah_tab5';
 export const LEARN_NAWAQID_TAB7_TABLE = 'learn_nawaqid_tab7';
+export const QURAN_USAGE_TABLE = 'quran_usage';
 
 export const logSqliteDb = async (db: any, label = 'sqlite') => {
   try {
@@ -85,20 +86,21 @@ export const openAppDb = (dbName = DEFAULT_DB_NAME) =>
 
 export const execSql = (db: any, sql: string, params: any[] = []) =>
   new Promise<any>((resolve, reject) => {
-    db.transaction(
-      (tx: any) => {
-        tx.executeSql(
-          sql,
-          params,
-          (_: any, res: any) => resolve(res),
-          (_: any, err: any) => {
-            reject(err);
-            return false;
-          },
-        );
-      },
-      (err: any) => reject(err),
-    );
+    try {
+      db.executeSql(
+        sql,
+        params,
+        (res: any) => resolve(res),
+        (err: any) => {
+          const msg = err && typeof err === 'object' ? JSON.stringify(err) : String(err ?? 'unknown sqlite error');
+          console.log('[execSql] ERROR', { sql: sql.substring(0, 80), msg });
+          reject(new Error(msg));
+        },
+      );
+    } catch (e: any) {
+      console.log('[execSql] EXCEPTION', { sql: sql.substring(0, 80), message: e?.message });
+      reject(e);
+    }
   });
 
 export const ensureResetMarkTable = async (
@@ -645,6 +647,143 @@ export const setLearnSurahTab3PressedNow = async (
      ON CONFLICT(surah) DO UPDATE SET pressed_ms=excluded.pressed_ms`,
     [s, Date.now()],
   );
+};
+
+// Quran usage tracking - daily based
+export const ensureQuranUsageTable = async (
+  db: any,
+  table = QURAN_USAGE_TABLE,
+) => {
+  // Check if table exists and has correct schema
+  try {
+    const info = await execSql(db, `PRAGMA table_info(${table})`);
+    const cols: string[] = [];
+    for (let i = 0; i < (info?.rows?.length ?? 0); i++) {
+      cols.push(String(info.rows.item(i).name ?? ''));
+    }
+    console.log('[quran-db] ensureQuranUsageTable: existing columns', cols);
+
+    // If table exists but missing 'date' column (old schema), drop and recreate
+    if (cols.length > 0 && !cols.includes('date')) {
+      console.log('[quran-db] ensureQuranUsageTable: old schema detected, dropping table');
+      await execSql(db, `DROP TABLE IF EXISTS ${table}`);
+    }
+  } catch (_e) {
+    // table doesn't exist yet, that's fine
+  }
+
+  await execSql(
+    db,
+    `CREATE TABLE IF NOT EXISTS ${table} (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      date TEXT NOT NULL UNIQUE,
+      total_minutes INTEGER NOT NULL DEFAULT 0,
+      last_updated INTEGER NOT NULL,
+      synced INTEGER DEFAULT 0
+    )`,
+  );
+  console.log('[quran-db] ensureQuranUsageTable: table ready');
+};
+
+export const saveQuranUsage = async (
+  db: any,
+  minutes: number,
+  dateStr?: string,
+  table = QURAN_USAGE_TABLE,
+) => {
+  const date = dateStr || toYmd(new Date());
+  const now = Date.now();
+  console.log('[quran-db] saveQuranUsage: start', { date, minutes, now, db: !!db, table });
+
+  // Ensure table exists first (avoid race condition)
+  await ensureQuranUsageTable(db, table);
+  console.log('[quran-db] saveQuranUsage: table ensured');
+  
+  // Get existing minutes for today
+  const res = await execSql(
+    db,
+    `SELECT total_minutes FROM ${table} WHERE date = ? LIMIT 1`,
+    [date],
+  );
+  console.log('[quran-db] saveQuranUsage: existing rows=', res?.rows?.length);
+  
+  let newTotal = minutes;
+  if ((res?.rows?.length ?? 0) > 0) {
+    // Add to existing minutes
+    const existing = Number(res.rows.item(0).total_minutes ?? 0);
+    newTotal = existing + minutes;
+    console.log('[quran-db] saveQuranUsage: existing=', existing, 'newTotal=', newTotal);
+  }
+  
+  await execSql(
+    db,
+    `INSERT INTO ${table} (date, total_minutes, last_updated, synced) 
+     VALUES (?, ?, ?, 0)
+     ON CONFLICT(date) DO UPDATE SET 
+       total_minutes = excluded.total_minutes,
+       last_updated = excluded.last_updated,
+       synced = 0`,
+    [date, newTotal, now],
+  );
+  console.log('[quran-db] saveQuranUsage: DONE', { date, newTotal });
+};
+
+export const markQuranUsageSynced = async (
+  db: any,
+  table = QURAN_USAGE_TABLE,
+) => {
+  await execSql(db, `UPDATE ${table} SET synced = 1 WHERE synced = 0`);
+};
+
+export const getQuranUsageForDate = async (
+  db: any,
+  dateStr: string,
+  table = QURAN_USAGE_TABLE,
+) => {
+  await ensureQuranUsageTable(db, table);
+  const res = await execSql(
+    db,
+    `SELECT total_minutes FROM ${table} WHERE date = ? LIMIT 1`,
+    [dateStr],
+  );
+  if ((res?.rows?.length ?? 0) === 0) return 0;
+  return Number(res.rows.item(0).total_minutes ?? 0);
+};
+
+export const getQuranUsageForDateRange = async (
+  db: any,
+  startDate: string,
+  endDate: string,
+  table = QURAN_USAGE_TABLE,
+) => {
+  await ensureQuranUsageTable(db, table);
+  const res = await execSql(
+    db,
+    `SELECT date, total_minutes FROM ${table} 
+     WHERE date >= ? AND date <= ? 
+     ORDER BY date ASC`,
+    [startDate, endDate],
+  );
+  const rows: any[] = [];
+  for (let i = 0; i < (res?.rows?.length ?? 0); i++) {
+    rows.push(res.rows.item(i));
+  }
+  return rows;
+};
+
+export const getUnsyncedQuranUsage = async (
+  db: any,
+  table = QURAN_USAGE_TABLE,
+) => {
+  const res = await execSql(
+    db,
+    `SELECT id, date, total_minutes, last_updated FROM ${table} WHERE synced = 0 ORDER BY date ASC`,
+  );
+  const rows: any[] = [];
+  for (let i = 0; i < (res?.rows?.length ?? 0); i++) {
+    rows.push(res.rows.item(i));
+  }
+  return rows;
 };
 
 export const ensureLearnAkmilTab4Table = async (

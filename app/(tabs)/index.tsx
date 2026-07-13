@@ -27,6 +27,7 @@ import { getHeaderSelection } from '@/lib/headerRotation';
 import {
   ensureGeneralTodoTable,
   ensureResetMarkTable,
+  ensureQuranUsageTable,
   getSqliteDbDump,
   hasResetMark,
   loadGeneralTodos,
@@ -34,6 +35,10 @@ import {
   openAppDb,
   toYmd,
   upsertGeneralTodos,
+  saveQuranUsage,
+  markQuranUsageSynced,
+  getQuranUsageForDate,
+  getQuranUsageForDateRange,
 } from '@/lib/resetMark';
 import { fetchChannelVideoUrls } from '@/lib/youtubeApi';
 import {
@@ -89,6 +94,9 @@ export default function HomeScreen() {
   const [usageError, setUsageError] = useState<string | null>(null);
   const [backgroundTaskStatus, setBackgroundTaskStatus] =
     useState<string>('Not registered');
+  const [combinedQuranWeek, setCombinedQuranWeek] = useState<
+    { day: string; date: string; dbMinutes: number; nativeMinutes: number }[]
+  >([]);
 
   const DEFAULT_TODOS: TodoItem[] = [
     {
@@ -211,12 +219,55 @@ export default function HomeScreen() {
     setLoadingUsage(true);
     setUsageError(null);
     try {
-      const week = await getQuranWeekBreakdown();
-      setQuranWeek(week);
+      console.log('[quran-week] loadQuranWeek: start');
+      // Get dates for current week (Mon–Sun)
+      const today = new Date();
+      const dayOfWeek = today.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+      const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+      const monday = new Date(today);
+      monday.setDate(today.getDate() + mondayOffset);
+
+      const dayNames = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+      const dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+      const dates: string[] = [];
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(monday);
+        d.setDate(monday.getDate() + i);
+        dates.push(toYmd(d));
+      }
+      console.log('[quran-week] loadQuranWeek: dates range', dates[0], 'to', dates[6]);
+
+      // Load both sources in parallel
+      console.log('[quran-week] loadQuranWeek: fetching native + db...');
+      const [nativeWeek, dbRows] = await Promise.all([
+        getQuranWeekBreakdown().catch((e) => { console.log('[quran-week] getQuranWeekBreakdown failed:', e); return null; }),
+        getQuranUsageForDateRange(db, dates[0], dates[6]),
+      ]);
+      console.log('[quran-week] loadQuranWeek: nativeWeek=', nativeWeek, 'dbRows count=', dbRows?.length);
+
+      setQuranWeek(nativeWeek);
+
+      // Build DB lookup
+      const dbMap = new Map<string, number>();
+      for (const row of dbRows) {
+        dbMap.set(row.date, row.total_minutes);
+      }
+
+      // Merge into combined array
+      const combined = dates.map((date, i) => ({
+        day: dayLabels[i],
+        date,
+        dbMinutes: dbMap.get(date) ?? 0,
+        nativeMinutes: nativeWeek ? (nativeWeek as any)[dayNames[i]] ?? 0 : 0,
+      }));
+      console.log('[quran-week] loadQuranWeek: combined result', combined);
+
+      setCombinedQuranWeek(combined);
     } catch (e: any) {
-      console.log('Error when calling getQuranWeekBreakdown:', e);
-      setUsageError(e?.message ?? 'Failed to load Quran week breakdown');
+      console.log('[quran-week] loadQuranWeek: FAILED', { e, message: e?.message, stack: e?.stack });
+      setUsageError(e?.message ?? 'Failed to load Quran week');
       setQuranWeek(null);
+      setCombinedQuranWeek([]);
     } finally {
       setLoadingUsage(false);
     }
@@ -337,28 +388,83 @@ export default function HomeScreen() {
     saveLocalDaily();
   }, [dailyScores]);
 
-  // Continuously send Quran minutes to API every 2 minutes
+  // Initialize Quran usage table
   useEffect(() => {
-    if (quranMinutes === null) return;
+    const initDb = async () => {
+      try {
+        await ensureQuranUsageTable(db);
+        console.log('Quran usage table initialized');
+      } catch (e) {
+        console.log('Failed to initialize Quran usage table:', e);
+      }
+    };
+    initDb();
+  }, []);
 
-    const sendToApi = () => {
-      fetch(
-        `https://home-dashboard-lac.vercel.app/api/quran/${quranMinutes}/210`,
-      )
-        .then((res) => {
-          // ToastAndroid.show(`Status: ${res.status}`, ToastAndroid.SHORT);
-          // return console.log('Ping API status:', res.status)
-        })
-        .catch((err) => console.log('API error:', err));
+  // Track Quran usage daily
+  useEffect(() => {
+    if (quranMinutes === null) {
+      console.log('[quran-usage] quranMinutes is null, skipping save');
+      return;
+    }
+
+    const today = toYmd(new Date());
+    console.log('[quran-usage] Starting daily tracking, today=', today, 'minutes=', quranMinutes);
+
+    const saveDailyUsage = async () => {
+      try {
+        console.log('[quran-usage] saveDailyUsage: calling saveQuranUsage with', { db: !!db, minutes: quranMinutes, today });
+        await saveQuranUsage(db, quranMinutes, today);
+        console.log('[quran-usage] saveDailyUsage: SUCCESS for', today, quranMinutes, 'minutes');
+      } catch (err) {
+        console.log('[quran-usage] saveDailyUsage: FAILED', { err, message: (err as any)?.message, stack: (err as any)?.stack });
+      }
     };
 
-    // send immediately on change
-    sendToApi();
+    // Save immediately on change
+    saveDailyUsage();
 
-    const interval = setInterval(sendToApi, 1 * 30 * 1000);
+    // Save every 30 seconds
+    const interval = setInterval(saveDailyUsage, 30 * 1000);
 
     return () => clearInterval(interval);
   }, [quranMinutes]);
+
+  // Send daily Quran usage to API
+  useEffect(() => {
+    const sendDailyToApi = async () => {
+      try {
+        console.log('[quran-api] sendDailyToApi: start');
+        const today = toYmd(new Date());
+        console.log('[quran-api] sendDailyToApi: today=', today, 'db=', !!db);
+        const todayMinutes = await getQuranUsageForDate(db, today);
+        console.log('[quran-api] sendDailyToApi: todayMinutes=', todayMinutes);
+        
+        if (todayMinutes > 0) {
+          const url = `https://home-dashboard-lac.vercel.app/api/quran/${todayMinutes}/210`;
+          console.log('[quran-api] sendDailyToApi: fetching', url);
+          const response = await fetch(url);
+          console.log('[quran-api] sendDailyToApi: response status=', response.status, 'ok=', response.ok);
+          if (response.ok) {
+            await markQuranUsageSynced(db);
+            console.log('[quran-api] sendDailyToApi: synced successfully');
+          }
+        } else {
+          console.log('[quran-api] sendDailyToApi: skipping, todayMinutes <= 0');
+        }
+      } catch (err) {
+        console.log('[quran-api] sendDailyToApi: FAILED', { err, message: (err as any)?.message, stack: (err as any)?.stack });
+      }
+    };
+
+    // Send on app foreground
+    sendDailyToApi();
+
+    // Send every 2 minutes
+    const interval = setInterval(sendDailyToApi, 2 * 60 * 1000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   // Register background task on component mount
   useEffect(() => {
@@ -686,6 +792,7 @@ export default function HomeScreen() {
         backgroundTaskStatus={backgroundTaskStatus}
         handleOpenSettings={handleOpenSettings}
         handleOpenUsageAccessSettings={handleOpenUsageAccessSettings}
+        combinedQuranWeek={combinedQuranWeek}
       ></Wellbeing>
     </ParallaxScrollView>
   );

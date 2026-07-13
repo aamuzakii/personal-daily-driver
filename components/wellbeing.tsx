@@ -4,7 +4,7 @@ import { ActivityIndicator, Button, Pressable } from 'react-native'
 import { ThemedText } from './themed-text'
 import { ThemedView } from './themed-view'
 
-const Wellbeing = ({handleLoadQuranUsage, quranMinutes, loadingUsage, quranWeek, loadQuranWeek, handleLoadUsage, twitterMinutes, usageError, backgroundTaskStatus, handleOpenSettings, handleOpenUsageAccessSettings}: any) => {
+const Wellbeing = ({handleLoadQuranUsage, quranMinutes, loadingUsage, quranWeek, loadQuranWeek, handleLoadUsage, twitterMinutes, usageError, backgroundTaskStatus, handleOpenSettings, handleOpenUsageAccessSettings, combinedQuranWeek}: any) => {
   return       <ThemedView style={styles.stepContainer}>
         <ThemedText type="subtitle">Chrome usage POC</ThemedText>
         <ThemedText>
@@ -24,6 +24,7 @@ const Wellbeing = ({handleLoadQuranUsage, quranMinutes, loadingUsage, quranWeek,
           </ThemedText>
         )}
 
+        {/* Combined Quran week (SQLite DB / Android native) */}
         <ThemedView style={styles.weekHeaderRow}>
           <ThemedText type="defaultSemiBold">Quran this week (Mon–Sun)</ThemedText>
           <Pressable onPress={loadQuranWeek} disabled={loadingUsage} style={styles.refreshButton}>
@@ -31,40 +32,23 @@ const Wellbeing = ({handleLoadQuranUsage, quranMinutes, loadingUsage, quranWeek,
           </Pressable>
         </ThemedView>
 
-        {quranWeek && !loadingUsage && (
+        {combinedQuranWeek && combinedQuranWeek.length > 0 && (
           <ThemedView style={styles.weekGrid}>
-            <ThemedView style={styles.weekRow}>
-              <ThemedText style={styles.weekLabel}>Mon</ThemedText>
-              <ThemedText style={styles.weekValue}>{quranWeek.monday} min</ThemedText>
-            </ThemedView>
-            <ThemedView style={styles.weekRow}>
-              <ThemedText style={styles.weekLabel}>Tue</ThemedText>
-              <ThemedText style={styles.weekValue}>{quranWeek.tuesday} min</ThemedText>
-            </ThemedView>
-            <ThemedView style={styles.weekRow}>
-              <ThemedText style={styles.weekLabel}>Wed</ThemedText>
-              <ThemedText style={styles.weekValue}>{quranWeek.wednesday} min</ThemedText>
-            </ThemedView>
-            <ThemedView style={styles.weekRow}>
-              <ThemedText style={styles.weekLabel}>Thu</ThemedText>
-              <ThemedText style={styles.weekValue}>{quranWeek.thursday} min</ThemedText>
-            </ThemedView>
-            <ThemedView style={styles.weekRow}>
-              <ThemedText style={styles.weekLabel}>Fri</ThemedText>
-              <ThemedText style={styles.weekValue}>{quranWeek.friday} min</ThemedText>
-            </ThemedView>
-            <ThemedView style={styles.weekRow}>
-              <ThemedText style={styles.weekLabel}>Sat</ThemedText>
-              <ThemedText style={styles.weekValue}>{quranWeek.saturday} min</ThemedText>
-            </ThemedView>
-            <ThemedView style={styles.weekRow}>
-              <ThemedText style={styles.weekLabel}>Sun</ThemedText>
-              <ThemedText style={styles.weekValue}>{quranWeek.sunday} min</ThemedText>
-            </ThemedView>
+            {combinedQuranWeek.map((row: any) => (
+              <ThemedView style={styles.weekRow} key={row.day}>
+                <ThemedText style={styles.weekLabel}>{row.day}</ThemedText>
+                <ThemedText style={styles.weekValue}>
+                  {row.dbMinutes} min / {row.nativeMinutes} min
+                </ThemedText>
+              </ThemedView>
+            ))}
 
             <ThemedView style={styles.totalRow}>
               <ThemedText type="defaultSemiBold">Total</ThemedText>
-              <ThemedText type="defaultSemiBold">{quranWeek.total} min</ThemedText>
+              <ThemedText type="defaultSemiBold">
+                {combinedQuranWeek.reduce((s: number, r: any) => s + r.dbMinutes, 0)} min /{' '}
+                {combinedQuranWeek.reduce((s: number, r: any) => s + r.nativeMinutes, 0)} min
+              </ThemedText>
             </ThemedView>
           </ThemedView>
         )}

@@ -1,6 +1,7 @@
 import * as BackgroundFetch from 'expo-background-fetch';
 import * as TaskManager from 'expo-task-manager';
 import { getQuranMinutes, startBackgroundTracking, stopBackgroundTracking } from './usageStats';
+import { openAppDb, ensureQuranUsageTable, saveQuranUsage, markQuranUsageSynced, getQuranUsageForDate } from '../lib/resetMark';
 
 const BACKGROUND_FETCH_TASK = 'quran-usage-tracking';
 const TASK_INTERVAL_MINUTES = 5;
@@ -12,9 +13,27 @@ TaskManager.defineTask(BACKGROUND_FETCH_TASK, async () => {
     const quranMinutes = await getQuranMinutes();
     console.log('Background task: Quran minutes:', quranMinutes);
     
-    // Send to API
-    const response = await fetch(`https://home-dashboard-lac.vercel.app/api/quran/${quranMinutes}/210`);
+    // Save to local DB (daily based)
+    const db = openAppDb();
+    await ensureQuranUsageTable(db);
+    
+    // Get today's date
+    const today = new Date();
+    const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    
+    await saveQuranUsage(db, quranMinutes, dateStr);
+    console.log(`Background task: Quran usage saved to local DB for ${dateStr}`);
+    
+    // Send to API (send today's total)
+    const todayMinutes = await getQuranUsageForDate(db, dateStr);
+    const response = await fetch(`https://home-dashboard-lac.vercel.app/api/quran/${todayMinutes}/210`);
     console.log('Background task: API response status:', response.status);
+    
+    if (response.ok) {
+      // Mark as synced if API call successful
+      await markQuranUsageSynced(db);
+      console.log('Background task: Quran usage synced to API successfully');
+    }
     
     return BackgroundFetch.BackgroundFetchResult.NewData;
   } catch (error) {
