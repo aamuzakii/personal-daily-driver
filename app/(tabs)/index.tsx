@@ -220,20 +220,20 @@ export default function HomeScreen() {
     setUsageError(null);
     try {
       console.log('[quran-week] loadQuranWeek: start');
-      // Get dates for current week (Mon–Sun)
+      // Last 7 days including today
       const today = new Date();
-      const dayOfWeek = today.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
-      const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-      const monday = new Date(today);
-      monday.setDate(today.getDate() + mondayOffset);
-
-      const dayNames = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
-      const dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+      const dayLabels: string[] = [];
+      const dayNames: string[] = [];
       const dates: string[] = [];
-      for (let i = 0; i < 7; i++) {
-        const d = new Date(monday);
-        d.setDate(monday.getDate() + i);
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date(today);
+        d.setDate(today.getDate() - i);
         dates.push(toYmd(d));
+        const jsDay = d.getDay();
+        const shortDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        const fullDays = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+        dayLabels.push(shortDays[jsDay]);
+        dayNames.push(fullDays[jsDay]);
       }
       console.log('[quran-week] loadQuranWeek: dates range', dates[0], 'to', dates[6]);
 
@@ -464,6 +464,12 @@ export default function HomeScreen() {
     const interval = setInterval(sendDailyToApi, 2 * 60 * 1000);
 
     return () => clearInterval(interval);
+  }, []);
+
+  // Auto-load Quran week on mount
+  useEffect(() => {
+    loadQuranWeek();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Register background task on component mount

@@ -26,7 +26,7 @@ const Wellbeing = ({handleLoadQuranUsage, quranMinutes, loadingUsage, quranWeek,
 
         {/* Combined Quran week (SQLite DB / Android native) */}
         <ThemedView style={styles.weekHeaderRow}>
-          <ThemedText type="defaultSemiBold">Quran this week (Mon–Sun)</ThemedText>
+          <ThemedText type="defaultSemiBold">Quran (last 7 days)</ThemedText>
           <Pressable onPress={loadQuranWeek} disabled={loadingUsage} style={styles.refreshButton}>
             <ThemedText type="link">{loadingUsage ? 'Loading…' : 'Refresh'}</ThemedText>
           </Pressable>

@@ -698,23 +698,8 @@ export const saveQuranUsage = async (
   // Ensure table exists first (avoid race condition)
   await ensureQuranUsageTable(db, table);
   console.log('[quran-db] saveQuranUsage: table ensured');
-  
-  // Get existing minutes for today
-  const res = await execSql(
-    db,
-    `SELECT total_minutes FROM ${table} WHERE date = ? LIMIT 1`,
-    [date],
-  );
-  console.log('[quran-db] saveQuranUsage: existing rows=', res?.rows?.length);
-  
-  let newTotal = minutes;
-  if ((res?.rows?.length ?? 0) > 0) {
-    // Add to existing minutes
-    const existing = Number(res.rows.item(0).total_minutes ?? 0);
-    newTotal = existing + minutes;
-    console.log('[quran-db] saveQuranUsage: existing=', existing, 'newTotal=', newTotal);
-  }
-  
+
+  // Overwrite with latest value (native module returns total, not delta)
   await execSql(
     db,
     `INSERT INTO ${table} (date, total_minutes, last_updated, synced) 
@@ -723,9 +708,9 @@ export const saveQuranUsage = async (
        total_minutes = excluded.total_minutes,
        last_updated = excluded.last_updated,
        synced = 0`,
-    [date, newTotal, now],
+    [date, minutes, now],
   );
-  console.log('[quran-db] saveQuranUsage: DONE', { date, newTotal });
+  console.log('[quran-db] saveQuranUsage: DONE', { date, minutes });
 };
 
 export const markQuranUsageSynced = async (
